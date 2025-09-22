@@ -23,7 +23,6 @@ class Portfolio:
     
     def weights(self):
         """create a dictionary for tickers and their weighting in the portfolio"""
-        
         total = self.portfolio_val()
         weights = {ticker: value / total for ticker, value in self.positions.items()}
         
