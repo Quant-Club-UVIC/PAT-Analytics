@@ -2,4 +2,9 @@
 
 ```mermaid
 erDiagram
+    COMPANY {
+        int PK id
+        str name
+        
+    }
 ```
