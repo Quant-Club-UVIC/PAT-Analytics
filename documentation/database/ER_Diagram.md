@@ -36,6 +36,7 @@ erDiagram
     FINANCIAL_METRIC{
         int metric_id PK
         int statement_id FK
+        int company_id FK
         string metric_name
         numeric metric_value
     }
@@ -48,11 +49,12 @@ erDiagram
         string detail
     }
     COMPANY}o--o{ETF : constituent   
-    ETF||--||STOCK : has
-    COMPANY||--||STOCK : has 
+    ETF||--||STOCK : is_priced
+    COMPANY||--||STOCK : is_priced
     COMPANY||--||FINANCIAL_STATEMENT : reports
     FINANCIAL_STATEMENT||--o{ FINANCIAL_METRIC : contains
     COMPANY||--o{CORPORATE_ACTION : undergoes
+    COMPANY||--o{FINANCIAL_METRIC : has 
 ```
 Notes:  
 - In FINANCIAL_STATEMENT type can only be one of : Income, CashFlow, Balance  
