@@ -92,9 +92,33 @@ class MarketData():
         df = (df
             .set_index('epoch')
             .reindex(columns=[ 'year', 'month', 'day', 'hour', 'minute', 
-                        'open', 'high', 'low', 'close']))
+                        'open', 'high', 'low', 'close', 'volume']))
 
         return df
 
-    def getETFConstit(self, ticker : str):
+    def getETFmetadata(self, ticker : str) -> tuple[pd.DataFrame, float, str, float]:
+        """
+        Returns and etfs constituents as a df,
+        div_yield, inc_date. Dfs columns are ['ticker', 'name', 'weight']
+        """
+        url = (
+            self.base_url + 
+            'function=ETF_PROFILE&'
+            f'symbol={ticker}&'
+            f'apikey={self.api_key}'
+        )
+        data = requests.get(url).json()
         
+        div_yield = float(data['dividend_yield'])
+        inc_date = data['inception_date']
+        net_expense_ratio = float(data['net_expense_ratio']) #comission fee
+        data = data['holdings']
+
+        df = pd.json_normalize(data)
+        df = df.rename(columns={'symbol' : 'ticker',
+           'description' : 'name'})
+        df['weight'] = df['weight'].astype('float')
+
+        return df, div_yield, inc_date, net_expense_ratio
+
+                
