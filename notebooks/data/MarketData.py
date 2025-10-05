@@ -1,7 +1,7 @@
 import requests
 import datetime
 import pandas as pd
-
+import re
 
 class MarketData():
     """
@@ -12,7 +12,7 @@ class MarketData():
         self.base_url = "https://www.alphavantage.co/query?"
         
         self.api_key = api_key
-        self.date_range = date_range
+        self.date_start, self.date_end = date_range
     
     def datetimeDecompose(self, df : pd.DataFrame, dateCol : str, doEpoch : bool = True, doYear: bool = True,
                           doMonth : bool = True, doDay : bool = True, doHour : bool = True,
@@ -51,7 +51,7 @@ class MarketData():
         return None
     
     def getPxAction(self, ticker : str, interval : str = '5min', extended_hours : bool = False,
-                    month : str | None = None, output_size : str | None = None) -> pd.DataFrame:
+                    month : str | None = None, output_size : str = 'full') -> pd.DataFrame:
         """
         Call the api to get a certain ticker as a df,
         with index as epoch timestamps, ohlc, and 
@@ -63,7 +63,14 @@ class MarketData():
         =====================================================================================
         1759521300  |2025   |10     |03     |19     |55     |288.39 |288.75 |288.39 |288.45 |
         """
+        #sanitize the input (so that we dont use up an api on erroneous calls)
+        allowed_intervals = ['1min', '5min', '15min', '30min', '60min']
+        assert (interval in allowed_intervals), "ERROR: Invalid interval entered."
 
+        if month:
+            assert re.fullmatch(r"(20[0-2]\d{1})-(0[1-9]|1[0-2])", month), "ERROR: Invalid year-month entered"
+
+        
         #the api call
         url = (
             self.base_url + 
@@ -71,7 +78,11 @@ class MarketData():
             f"symbol={ticker}&" 
             f"interval={interval}&" 
             f"apikey={self.api_key}&" 
-            f"datatype=csv"
+            f"datatype=csv&"
+            f"extended_hours={'true' if extended_hours else 'false'}&"
+            f"outputsize={output_size}&"
+            f"{('month='+month) if month else ''}"
+
         )
 
         df = pd.read_csv(url)
@@ -84,7 +95,6 @@ class MarketData():
                         'open', 'high', 'low', 'close']))
 
         return df
-    
-data = MarketData('demo', ())
-df = data.getPxAction('IBM')
-print(df)
+
+    def getETFConstit(self, ticker : str):
+        
