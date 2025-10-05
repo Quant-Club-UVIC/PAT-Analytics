@@ -26,7 +26,8 @@ class MarketData():
         if not inplace:
             df = df.copy()
 
-        assert (dateCol in df), f"{dateCol} does not exist in the passed df, try agin"
+        if dateCol not in df:
+            raise ValueError("The passed column does not exist in the df, try again")
 
         df[dateCol] = pd.to_datetime(df[dateCol], errors='raise')
    
@@ -36,7 +37,7 @@ class MarketData():
             (doDay, 'day', df[dateCol].dt.day),
             (doHour, 'hour', df[dateCol].dt.hour),
             (doMinute, 'minute', df[dateCol].dt.minute),
-            (doSecond, 'second', df[dateCol].dt.second)
+            (doSecond, 'second', df[dateCol].dt.second),
             (doEpoch, 'epoch', df[dateCol].astype('int64') // 10**9)
         ]
         
@@ -49,7 +50,8 @@ class MarketData():
 
         return None
     
-    def getPxAction(self, ticker : str, interval : str = '5min') -> pd.DataFrame:
+    def getPxAction(self, ticker : str, interval : str = '5min', extended_hours : bool = False,
+                    month : str | None = None, output_size : str | None = None) -> pd.DataFrame:
         """
         Call the api to get a certain ticker as a df,
         with index as epoch timestamps, ohlc, and 
@@ -63,21 +65,18 @@ class MarketData():
         """
 
         #the api call
-        url = f'https://www.alphavantage.co/query?function=TIME_SERIES_INTRADAY&symbol={ticker}&interval={interval}&apikey={self.api_key}&extended_hours=false'
+        url = (
+            self.base_url + 
+            "function=TIME_SERIES_INTRADAY&" 
+            f"symbol={ticker}&" 
+            f"interval={interval}&" 
+            f"apikey={self.api_key}&" 
+            f"datatype=csv"
+        )
 
-        r = requests.get(url)
-        data = r.json()[f'Time Series ({interval})']
-
-        df = pd.DataFrame.from_dict(data).T
-        df = df.apply(pd.to_numeric).reset_index()
-        df = df.rename(columns={'1. open' : 'open',
-                '2. high' : 'high',
-                '3. low' : 'low',
-                '4. close' :'close',
-                '5. volume' : 'volume',
-                'index' : 'datetime'})
+        df = pd.read_csv(url)
         
-        self.datetimeDecompose(df, 'datetime')
+        self.datetimeDecompose(df, 'timestamp')
         
         df = (df
             .set_index('epoch')
