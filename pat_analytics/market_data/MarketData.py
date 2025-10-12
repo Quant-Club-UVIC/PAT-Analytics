@@ -2,6 +2,7 @@ import requests
 import datetime
 import pandas as pd
 import re
+import io
 
 class MarketData():
     """
@@ -13,6 +14,26 @@ class MarketData():
         
         self.api_key = api_key
         self.date_start, self.date_end = date_range
+
+    def _safe_get(self, params : dict, mode : str, timeout: int = 10) -> io.StringIO | dict:
+        """
+        Validates api call before turning into tables, gives
+        error msgs to api user from alphavantage
+        """
+        if mode not in ('json', 'csv'):
+            raise ValueError("Error using _safe_get, must pass type as either csv or json")
+
+        response = requests.get(self.base_url, params=params, timeout=timeout)
+
+        if response.status_code != 200: #not ok
+            raise ConnectionError(f"AlphaVantage returned HTTP {response.status_code} : {response.text}")
+
+        return io.StringIO(response.text) if mode == 'csv' else response.json()
+        
+    
+    """
+    ============DATA=UTILITIES================
+    """
     
     def datetimeDecompose(self, df : pd.DataFrame, dateCol : str, doEpoch : bool = True, doYear: bool = True,
                           doMonth : bool = True, doDay : bool = True, doHour : bool = True,
@@ -50,6 +71,10 @@ class MarketData():
 
         return None
     
+    """
+    ===========API=CALLS==================
+    """    
+    
     def getPxAction(self, ticker : str, interval : str = '5min', extended_hours : bool = False,
                     month : str | None = None, output_size : str = 'full') -> pd.DataFrame:
         """
@@ -72,20 +97,21 @@ class MarketData():
 
         
         #the api call
-        url = (
-            self.base_url + 
-            "function=TIME_SERIES_INTRADAY&" 
-            f"symbol={ticker}&" 
-            f"interval={interval}&" 
-            f"apikey={self.api_key}&" 
-            f"datatype=csv&"
-            f"extended_hours={'true' if extended_hours else 'false'}&"
-            f"outputsize={output_size}&"
-            f"{('month='+month) if month else ''}"
+        params = {
+            "function" : "TIME_SERIES_INTRADAY", 
+            "symbol" : ticker, 
+            "interval" : interval, 
+            "apikey" : self.api_key, 
+            "datatype" : "csv",
+            "outputsize" : output_size
+        }
+        if month:
+            params['month'] = month
 
-        )
+        params['extended_hours'] = 'true' if extended_hours else 'false'
 
-        df = pd.read_csv(url)
+        csv_stream = self._safe_get(params, mode = 'csv')
+        df = pd.read_csv(csv_stream)
         
         self.datetimeDecompose(df, 'timestamp')
         
@@ -101,13 +127,15 @@ class MarketData():
         Returns and etfs constituents as a df,
         div_yield, inc_date. Dfs columns are ['ticker', 'name', 'weight']
         """
-        url = (
-            self.base_url + 
-            'function=ETF_PROFILE&'
-            f'symbol={ticker}&'
-            f'apikey={self.api_key}'
-        )
-        data = requests.get(url).json()
+        params = {
+            'function' : 'ETF_PROFILE',
+            'symbol' : ticker,
+            'apikey' : self.api_key
+        }
+
+        json_stream = self._safe_get(params, mode='json')
+
+        data = (json_stream)
         
         div_yield = float(data['dividend_yield'])
         inc_date = data['inception_date']
@@ -121,4 +149,14 @@ class MarketData():
 
         return df, div_yield, inc_date, net_expense_ratio
 
-                
+    def getCompanyOverview(self, ticker : list[str], wanted_attr : list[str] = ['']) -> dict:
+        """
+        Get the company overview as a dictionary
+        """
+        return
+    
+    def getCompanyOverviews(self, tickers : list[str], wanted_attr : list[str] = ['']) -> pd.DataFrame:
+        """
+        Get a dataframe filled with company overviews
+        """
+        return
