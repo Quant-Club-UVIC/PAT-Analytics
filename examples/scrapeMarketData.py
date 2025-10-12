@@ -1,4 +1,4 @@
-from MarketData import MarketData
+from pat_analytics import MarketData
 import config
 
 import pandas as pd
@@ -7,8 +7,9 @@ import datetime
 date_start = datetime.date(2021, 8, 1)
 date_end = datetime.date(2021, 10, 1)
 data = MarketData(config.api_key, (date_start, date_end))
-ticker = 'SPY'
-df = data.getPxAction(ticker)
+ticker = 'LULU'
+month = '2024-12'
+df = data.getPxAction(ticker, month=month)
 df.to_csv(f'{ticker}.csv')
 
 ticker_etf = 'SPY'
