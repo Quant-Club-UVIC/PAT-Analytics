@@ -82,6 +82,7 @@ class Portfolio:
         """
         
         
+        
     
     def get_total_returns(self, isDollar : bool = False):
         """
