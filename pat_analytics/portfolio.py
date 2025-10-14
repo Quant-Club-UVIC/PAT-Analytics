@@ -11,7 +11,7 @@ class Portfolio:
     def __init__(self, pxaction : pd.DataFrame, metadata : pd.DataFrame,  
                  weight : pd.Series = None, rebalance_period : str = "none"):
         """
-        pxaction       : Dataframe [ticker x time] -> price (dollar amount)
+        pxaction        : Dataframe [ticker x time] -> price (dollar amount)
         metadata        : Dataframe [data_type x ticker] -> value (sector, 2023Q1 earnings, country, currency etc)
         weight          : Series [ticker] -> weight (must add up to 1), if None then metadata must include 'amt_shares'
         rebalance_period: String for how often to rebalance the weights to original

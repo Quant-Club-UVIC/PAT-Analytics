@@ -1,2 +1,6 @@
 venv/
-*.csv
+*.csv  
+*.log
+*.aux
+*.out
+*.tok
