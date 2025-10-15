@@ -16,7 +16,7 @@ class Portfolio:
         "simple" : SimpleBacktester
     }
 
-    def __init__(self, pxaction : pd.DataFrame, metadata : pd.DataFrame,  
+    def __init__(self, pxaction : pd.DataFrame, metadata : pd.DataFrame = None,  
                  weight : pd.Series = None, rebalance_period : str = "none"):
         """
         Cannonical constructor. Expects a Multiindexed Dataframe
@@ -43,7 +43,7 @@ class Portfolio:
         )
 
         self.pxaction : pd.DataFrame = pxaction.sort_index(axis=1)
-        self.metadata : pd.DataFrame= metadata
+        self.metadata : pd.DataFrame = metadata if (metadata is not None) else pd.DataFrame()
         self.rebalance_period : pd.Timedelta = self._parse_rebalance_period(rebalance_period)
 
         #cache (have the slices ready)
@@ -152,7 +152,7 @@ class Portfolio:
     @classmethod
     def from_dict(cls, 
                   data_dict         : dict[str, pd.DataFrame | pd.Series],
-                  metadata          : pd.DataFrame,
+                  metadata          : pd.DataFrame = None,
                   weight            : pd.Series = None,
                   rebalance_period  : str = "none"):
         """
@@ -180,7 +180,7 @@ class Portfolio:
             else:
                 raise TypeError(f"Unsuported type for {ticker} : {type(obj)}")
             
-            df.columns = pd.MultiIndex.from_product([[ticker]], df.columns)
+            df.columns = pd.MultiIndex.from_product([ticker, df.columns] )
             frames.append(df)
         
         data = pd.concat(frames, axis=1).sort_index(axis=1)

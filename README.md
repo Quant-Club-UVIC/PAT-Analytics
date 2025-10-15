@@ -1,10 +1,31 @@
 # PAT-Analytics
-PAT-Analytics is a python library that allows user to fetch market data, create a portfolio, perform calculations and display portfolio metrics
-: risk, sector allocations, implied growth, stress-tests, portfolio optimizations. Is meant to be usable as a stand-alone application.
+PAT-Analytics is a python library enabling user to fetch market data, create portfolios, display portfolio metrics : risk, sector allocations, implied growth, stress-tests. Allows access to models, and portfolio optimizers. 
 
-# Quick Set-Up  
-Need to install the necessary dependancies, after cloning the repo in main/ type  
+# Quick Set-Up 
+## For Users
+If you wish to use the library, make sure to clone the repo and then 
+```bash
+pip3 install -e .
+```  
+Here is a simple script to get the VaR of a portfolio, with data
 ```python3
+from pat_analytics import Portfolio, MarketData
+tickers = ["LULU", "NVDA", "SPY"]
+data = MarketData("my_secret_api_key").getPxActions(tickers)
+p = Portfolio(data, weight='uniform')
+print(p.risk.var)
+```
+Or if you do not want to call the API every time, here is an example of 
+calculating sharpe by sector
+```python3
+from pat_analytics import Portfolios
+tickers = {"LULU" : "lulu.csv", "NVDA" : "nvda.csv", "SPY" : "spy.csv"}
+p = Portfolio.from_csv(tickers, weight='uniform')
+print(p.performance.sharpe.by_sector())
+```
+## For Contributors
+Need to install the necessary dependancies, after cloning the repo in main/ type  
+```bash
 python3.12 -m venv venv
 source venv/bin/activate
 pip3 install -r requirements.txt
@@ -20,6 +41,6 @@ pip3 install pipreqs
 pipreqs --force ./
 ```
 Do this in main/ of course.  
-If you have come up with a new model, add your whitepaper for it in documentation/
+If you have come up with a new model, add your whitepaper for it in documentation/, after review it will be added to the main .tex file
 # Contributors  
 Add here later
