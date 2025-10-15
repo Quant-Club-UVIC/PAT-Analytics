@@ -9,5 +9,5 @@ examples/config.py
 
 *.egg-info/
 .eggs/
-__pycache__/
+**/__pycache__/**
 *.py[cod]
