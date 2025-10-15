@@ -4,3 +4,5 @@ venv/
 *.aux
 *.out
 *.toc 
+
+examples/config.py
