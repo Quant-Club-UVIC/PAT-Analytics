@@ -1,9 +1,8 @@
 import pandas as pd
 import datetime
 import numpy as np
-from functools import cached_property
 
-from .backtester.simple import SimpleBacktester
+from .engine.simple import SimpleBacktester
 
 class Portfolio:
     """
@@ -11,6 +10,7 @@ class Portfolio:
     Given cleaned market data, performs portfolio computations
     """
 
+    FIELD_LEVEL = "field"
     REQUIRED_FIELDS = ['open', 'high', 'low', 'close', 'volume']
     BACKTESTERS = {
         "simple" : SimpleBacktester
@@ -39,38 +39,53 @@ class Portfolio:
         #normalize cols
         pxaction.columns = pd.MultiIndex.from_tuples(
             [(str(sym), str(field)) for sym, field in pxaction.columns],
-            names=['ticker', 'field']
+            names=['ticker', self.FIELD_LEVEL]
         )
 
         self.pxaction : pd.DataFrame = pxaction.sort_index(axis=1)
         self.metadata : pd.DataFrame= metadata
         self.rebalance_period : pd.Timedelta = self._parse_rebalance_period(rebalance_period)
+
+        #cache (have the slices ready)
+        self._cache = {} 
         
         #starting weight and share quantity
         self.w0 , self.q0 = self._init_start_weight(weight)
 
+        self.returns : pd.DataFrame = self.close.pct_change().fillna(0)
+
         # users must backtest for this value
-        self.returns : pd.DataFrame = None
         self.weight : pd.DataFrame = None 
         self.quantity : pd.DataFrame = None
 
-    @cached_property
     def _field(self, name : str) -> pd.DataFrame:
-        return self.pxaction.xs(name, level="field", axis=1)
+        """
+        For caching slices, and easy access to just close, open etc
+        """
+        if name not in self._cache:
+            self._cache[name] = self.pxaction.xs(name, axis=1, level=self.FIELD_LEVEL)
+
+        return self._cache[name]
     
-    @cached_property
+    def clear_cache(self):
+        """
+        If pxaction df changes, easy to clear the cache
+        """
+        self._cache.clear() 
+        
+    @property
     def open(self) -> pd.DataFrame: return self._field("open")
     
-    @cached_property
+    @property
     def high(self) -> pd.DataFrame: return self._field("high")
     
-    @cached_property
+    @property
     def low(self) -> pd.DataFrame: return self._field("low")
     
-    @cached_property
+    @property
     def close(self) -> pd.DataFrame: return self._field("close")
     
-    @cached_property
+    @property
     def volume(self) -> pd.DataFrame: return self._field("volume")
 
     """
@@ -104,20 +119,29 @@ class Portfolio:
         qty_col_name = 'quantity'
         default_market_value = 1.0
 
-        if not(qty_col_name in self.metadata ^ init_weight is None):
+        has_qty = qty_col_name in self.metadata.columns
+        has_weight = init_weight is not None
+
+        if has_qty == has_weight:
             raise ValueError("Either specify quantity in metadata, or starting weight. Must have exactly one")
         
-        price : pd.Series = self.close.iloc[0] # first price
+        price : pd.Series = self.close.iloc[0, :] # first price
+        tickers = price.index.astype(str)
 
-        if qty_col_name in self.metadata: #get weight
-
-            quantity : pd.Series = self.metadata[qty_col_name]
+        #align, sanity check, number crunch, return
+        if has_qty: #get weight
+            quantity : pd.Series = self.metadata[qty_col_name].reindex(tickers).fillna(0)
             total_market_value : float = (quantity * price).sum()
+            if total_market_value <= 0:
+                raise ValueError("Market Value can not be zero!")
             weight : pd.Series = (quantity * price) / total_market_value
-
             return weight, quantity
         
-        elif init_weight is None: #get quantity
+        else: #get quantity
+            init_weight = init_weight.reindex(tickers).fillna(0)
+            if init_weight.sum() <= 0:
+                raise ValueError("Weights must sum to a positive value!")
+            init_weight /= init_weight.sum()
             quantity : pd.Series = (default_market_value * init_weight)  / price 
             return init_weight, quantity 
 
@@ -166,7 +190,7 @@ class Portfolio:
     """
     PUBLIC METHODS
     """
-    def run_backtest(self, type : str = "simple", **kwargs) -> dict[pd.DataFrame, pd.DataFrame]:
+    def run_backtest(self, type : str = "simple", **kwargs) -> tuple[pd.DataFrame, pd.DataFrame]:
         """
         Run a backtest, evolving the portfolio with or without rebalancing and/or 
         fee structure
@@ -178,25 +202,26 @@ class Portfolio:
         
         bt = cls(self, **kwargs)
         self.weight, self.quantity = bt.run()
-        self.returns : pd.Series = self.get_total_returns()
-        return self.returns, self.weight, self.quantity
+        return self.weight, self.quantity
     
-    def get_total_returns(self, isDollar : bool = False) -> pd.Series:
+    def get_total_returns(self) -> pd.Series:
         """
         Returns the returns of the portfolio as percent change
         or as dollar amount, depending on the isDollar flag
         """
+
+        returns, weights = self.returns.align(self.weight, join="inner", axis=1)
+
+        #as net return per time frame, NOT GROSS
+        return (returns * weights).sum(axis = 1)
         
-    def get_market_value(self, time : datetime.datetime = None) -> pd.Series:
+    def get_market_value(self) -> pd.Series:
         """
         Recieve the market value of the portfolio in dollar amount
-        at time, if None then latest date in df
         """
-        if time is None:
-            time = self.pxaction.index[-1]
-
-        return self.pxaction[time]
-
+        qty, price = self.quantity.align(self.close, join="inner", axis=1)
+        
+        return (qty * price).sum(axis=1)
 
 
 
