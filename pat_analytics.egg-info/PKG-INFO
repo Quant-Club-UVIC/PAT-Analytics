@@ -1,9 +1,0 @@
-Metadata-Version: 2.4
-Name: pat_analytics
-Version: 0.1.0
-Summary: Portfolio Analytics Toolkit
-Author: Abil Nurgaliyev
-License-File: LICENSE
-Requires-Dist: pandas
-Requires-Dist: numpy
-Dynamic: license-file
