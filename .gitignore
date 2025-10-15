@@ -6,5 +6,8 @@ venv/
 *.toc 
 
 examples/config.py
-pat_analytics.egg-info/
+
+*.egg-info/
+.eggs/
 __pycache__/
+*.py[cod]
