@@ -1,9 +1,11 @@
 import pandas as pd
 import numpy as np
+import matplotlib.pyplot as plt
 
 from pat_analytics import Portfolio
 
 import pandas as pd
+
 
 stocks = ["LULU", "AAPL", "NVDA"]
 data = {}
@@ -18,5 +20,16 @@ p = Portfolio.from_dict(data, weight = 'uniform')
 
 p.run_backtest()
 
-print(p.weight.head(10))
+returns = p.get_total_returns().cumprod()
+mv = p.get_market_value()
+
+weight = p.weight.reset_index(drop=True)
+print(weight)
+weight.plot(title="Portfolio Weight Drift")
+plt.show()
+
 print(p.weight.tail(10))
+
+print(f"The amount of shares : \n{p.quantity * p.close}")
+print(f"The returns are {returns}")
+print(f"The mv is {mv}")

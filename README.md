@@ -1,6 +1,8 @@
 # PAT-Analytics
 PAT-Analytics is a python library enabling user to fetch market data, create portfolios, display portfolio metrics : risk, sector allocations, implied growth, stress-tests. Allows access to models, and portfolio optimizers. 
-
+  
+# DISCLAIMER  
+**THIS TOOL IS STILL IN EARLY DEVELOPMENT AND MAY CONTAIN BUGS, UNFINISHED FEATURES, POOR DOCUMENTATION BE AWARE**
 # Quick Set-Up 
 ## For Users
 If you wish to use the library, make sure to clone the repo and then 
