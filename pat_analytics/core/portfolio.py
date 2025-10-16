@@ -11,13 +11,14 @@ class Portfolio:
     """
 
     FIELD_LEVEL = "field"
+    DATE_FIELD = "datetime"
     REQUIRED_FIELDS = ['open', 'high', 'low', 'close', 'volume']
     BACKTESTERS = {
         "simple" : SimpleBacktester
     }
 
     def __init__(self, pxaction : pd.DataFrame, metadata : pd.DataFrame = None,  
-                 weight : pd.Series = None, rebalance_period : str = "none"):
+                 weight : pd.Series | str = None, rebalance_period : str = "none"):
         """
         Cannonical constructor. Expects a Multiindexed Dataframe
 
@@ -36,13 +37,16 @@ class Portfolio:
         if not isinstance(pxaction.columns, pd.MultiIndex):
             raise ValueError("Data must have multiindex columns, if using dict try from_dict()")
         
+        # TODO : MAKE SURE DATETIME COLUMN EXISTS
         #normalize cols
         pxaction.columns = pd.MultiIndex.from_tuples(
             [(str(sym), str(field)) for sym, field in pxaction.columns],
             names=['ticker', self.FIELD_LEVEL]
         )
 
-        self.pxaction : pd.DataFrame = pxaction.sort_index(axis=1)
+        print(f"INDEX OF PXACTION {pxaction.sort_index(axis=0, ascending=True).index}")
+
+        self.pxaction : pd.DataFrame = pxaction.sort_index()
         self.metadata : pd.DataFrame = metadata if (metadata is not None) else pd.DataFrame()
         self.rebalance_period : pd.Timedelta = self._parse_rebalance_period(rebalance_period)
 
@@ -52,7 +56,7 @@ class Portfolio:
         #starting weight and share quantity
         self.w0 , self.q0 = self._init_start_weight(weight)
 
-        self.returns : pd.DataFrame = self.close.pct_change().fillna(0)
+        self.returns : pd.DataFrame = 1 + self.close.pct_change().fillna(0)
 
         # users must backtest for this value
         self.weight : pd.DataFrame = None 
@@ -138,6 +142,11 @@ class Portfolio:
             return weight, quantity
         
         else: #get quantity
+            if isinstance(init_weight, str):
+                if init_weight == 'uniform':
+                    n = len(tickers)
+                    init_weight = pd.Series(1 / n, index=tickers, name='weight')
+
             init_weight = init_weight.reindex(tickers).fillna(0)
             if init_weight.sum() <= 0:
                 raise ValueError("Weights must sum to a positive value!")
@@ -164,6 +173,7 @@ class Portfolio:
         frames = []
 
         for ticker, obj in data_dict.items():
+            obj.index = obj[cls.DATE_FIELD]
             if isinstance(obj, pd.Series): #close only
                 df = pd.DataFrame(index=obj.index)
                 for f in cls.REQUIRED_FIELDS:
@@ -180,7 +190,7 @@ class Portfolio:
             else:
                 raise TypeError(f"Unsuported type for {ticker} : {type(obj)}")
             
-            df.columns = pd.MultiIndex.from_product([ticker, df.columns] )
+            df.columns = pd.MultiIndex.from_product([[ticker], df.columns] )
             frames.append(df)
         
         data = pd.concat(frames, axis=1).sort_index(axis=1)

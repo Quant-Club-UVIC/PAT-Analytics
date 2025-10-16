@@ -9,7 +9,7 @@ date_start = datetime.date(2021, 8, 1)
 date_end = datetime.date(2021, 10, 1)
 data = MarketData(config.api_key, (date_start, date_end))
 
-tickers = ['LULU', 'AAPL', 'SPY', 'LUMN', 'NVDA']
+tickers = [ 'AAPL', 'SPY', 'LUMN', 'NVDA']
 for ticker in tickers:
     month = '2025-08'
     df = data.getPxAction(ticker, month=month)
