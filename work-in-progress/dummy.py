@@ -7,7 +7,7 @@ from pat_analytics import Portfolio
 import pandas as pd
 
 
-stocks = ["LULU", "AAPL", "NVDA"]
+stocks = ["LULU", "AAPL", "NVDA", "SPY"]
 data = {}
 for s in stocks:
     df = pd.read_csv(f"{s}.csv")
@@ -28,6 +28,8 @@ print(weight)
 weight.plot(title="Portfolio Weight Drift")
 plt.show()
 
+mv.reset_index(drop=True).plot(title="Portfolio Market Value")
+plt.show()
 print(p.weight.tail(10))
 
 print(f"The amount of shares : \n{p.quantity * p.close}")
