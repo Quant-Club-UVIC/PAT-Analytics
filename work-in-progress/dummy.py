@@ -32,6 +32,4 @@ mv.reset_index(drop=True).plot(title="Portfolio Market Value")
 plt.show()
 print(p.weight.tail(10))
 
-print(f"The amount of shares : \n{p.quantity * p.close}")
-print(f"The returns are {returns}")
-print(f"The mv is {mv}")
+print(f"VAR {p.risk.var.var * 100 : .2f} %")

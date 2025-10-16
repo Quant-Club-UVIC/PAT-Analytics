@@ -24,7 +24,7 @@ class AnalyticsBase:
         """
         Portfolios Asset Weights
         """
-        if self.weights is None:
+        if self._weights is None:
             self._weights = self.portfolio.weight
         return self._weights
     

@@ -4,6 +4,8 @@ import numpy as np
 
 from pat_analytics.engine.simple import SimpleBacktester
 
+from pat_analytics.analytics.risk import RiskBase
+
 class Portfolio:
     """
     Main way users interact with pat_analytics  
@@ -62,6 +64,9 @@ class Portfolio:
         self.weight : pd.DataFrame = None 
         self.quantity : pd.DataFrame = None
 
+        # user must use the respective sub-classes to init these
+        self._risk = None
+    
     def _field(self, name : str) -> pd.DataFrame:
         """
         For caching slices, and easy access to just close, open etc
@@ -233,5 +238,11 @@ class Portfolio:
         
         return (qty * price).sum(axis=1)
 
-
-
+    @property
+    def risk(self):
+        """
+        Exposes to the risk classes
+        """
+        if self._risk is None:
+            self._risk = RiskBase(self)
+        return self._risk
