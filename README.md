@@ -9,16 +9,16 @@ If you wish to use the library, make sure to clone the repo and then
 ```bash
 pip3 install -e .
 ```  
-Here is a simple script to get the VaR of a portfolio, with data
+Here is a simple script to get the Conditional-VaR of a portfolio, with data
 ```python3
 from pat_analytics import Portfolio, MarketData
 tickers = ["LULU", "NVDA", "SPY"]
 data = MarketData("my_secret_api_key").getPxActions(tickers)
 p = Portfolio(data, weight='uniform')
-print(p.risk.var)
+print(p.risk.var.cvar)
 ```
 Or if you do not want to call the API every time, here is an example of 
-calculating sharpe by sector
+calculating sharpe by sector (This is not implemented yet, but a possible user story)
 ```python3
 from pat_analytics import Portfolios
 tickers = {"LULU" : "lulu.csv", "NVDA" : "nvda.csv", "SPY" : "spy.csv"}

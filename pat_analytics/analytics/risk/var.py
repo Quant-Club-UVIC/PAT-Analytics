@@ -14,7 +14,7 @@ class VaRAnalytics(RiskBase):
         Implementation of vanilla
         Historic Value at Risk
         """
-        net_returns : pd.Series = 1- self.returns
+        net_returns : pd.Series = 1 - self.returns
         return net_returns.quantile(1 - self.level)
     
     @property
