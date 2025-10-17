@@ -17,7 +17,7 @@ for s in stocks:
     data[s] = df
 
 
-p = Portfolio.from_dict(data, weight = 'uniform')
+p = Portfolio.from_dict(data, weight = 'uniform', rebalance_period="5min")
 
 p.run_backtest()
 
@@ -29,7 +29,7 @@ print(weight)
 weight.plot(title="Portfolio Weight Drift")
 plt.show()
 
-mv.reset_index(drop=True).plot(title="Portfolio Market Value")
+returns.reset_index(drop=True).plot(title="Portfolio Market Value")
 plt.show()
 print(p.weight.tail(10))
 

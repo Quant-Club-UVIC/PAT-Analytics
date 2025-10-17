@@ -7,6 +7,7 @@ class BaseBacktester:
         self.net_returns : pd.DataFrame = 1 + portfolio.returns 
         self.q0 : pd.DataFrame = portfolio.q0
         self.w0 : pd.DataFrame = portfolio.w0
+        self.rebalance_period : pd.Timedelta = portfolio.rebalance_period
     
     def run(self):
         raise NotImplementedError

@@ -5,7 +5,7 @@ import numpy as np
 from pat_analytics.engine.simple import SimpleBacktester
 
 from pat_analytics.analytics.risk import RiskBase
-from pat_analytics.analytics.performance import PerformanceAnalytics
+from pat_analytics.analytics.performance import PerformanceBase
 
 class Portfolio:
     """
