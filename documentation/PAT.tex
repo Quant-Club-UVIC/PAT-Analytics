@@ -1,0 +1,188 @@
+\documentclass[12pt]{article}
+\usepackage[a4paper, margin=1in]{geometry}
+\usepackage{amsmath, amssymb, amsthm}
+\usepackage{hyperref}
+\usepackage{setspace}
+\usepackage{mathtools}
+
+\onehalfspacing
+
+\title{PAT-Analytics Documentation}
+\author{}
+\date{}
+
+\begin{document}
+
+\maketitle
+
+\tableofcontents
+\newpage
+
+\section{Basics}
+
+\subsection{How to Upload this Document}
+GitHub does not natively support KaTeX, so we cannot directly render this Markdown file inline.  
+Instead, render it locally with \LaTeX{} and update the resulting PDF.
+
+\subsection{Notation}
+
+\begin{equation}
+X := \{\text{all tradable instruments (universe)}\}
+\label{eq:universe}
+\end{equation}
+
+\subsection{Setting Things Up}
+Define
+\begin{equation}
+X = \{ \text{all positions (tradable instruments)} \}
+\end{equation}
+We have a portfolio at time $ t $, denoted $ P_t \subseteq X $, the set of positions held at time $ t $. Thus,
+\begin{equation}
+P : \mathbb{R}_{\geq 0} \to \mathbb{P}(X), \quad t \mapsto P_t
+\label{eq:portfolio_function}
+\end{equation}
+
+The number of \textbf{shares} of instrument $ x \in X $ at time $ t $ is
+\begin{equation}
+q(x,t) \in \mathbb{R}_{\geq 0}
+\label{eq:quantity}
+\end{equation}
+and the portfolio composition can be defined as
+\begin{equation}
+P_t = \{x \in X \mid q(x,t) \neq 0\}.
+\label{eq:positions_nonzero}
+\end{equation}
+
+The \textbf{price} of instrument $ x $ at time $ t $:
+\begin{equation}
+p(x,t) \in \mathbb{R}_{\geq 0}.
+\label{eq:price}
+\end{equation}
+
+The \textbf{value} of an instrument $ x $ at time $ t $:
+\begin{equation}
+V(x,t) = p(x,t) q(x,t)
+\label{eq:instrument_value}
+\end{equation}
+
+The \textbf{total portfolio market value}:
+\begin{equation}
+V_p(t) = \sum_{i \in X} V(i,t)
+\label{eq:portfolio_value}
+\end{equation}
+
+The \textbf{weight} of instrument $ x \in X $ at time $ t $:
+\begin{equation}
+w(x,t) = \frac{V(x,t)}{\sum_{i \in P_t} V(i,t)} \in \mathbb{R}_{\geq 0}
+\label{eq:weight}
+\end{equation}
+
+The \textbf{gross return} of instrument $ x $ from $ t $ to $ t + \Delta t $:
+\begin{equation}
+R(x,t) = \frac{p(x,t + \Delta t)}{p(x, t)} \in \mathbb{R}_{\geq 0}
+\label{eq:gross_return}
+\end{equation}
+
+The \textbf{net return}:
+\begin{equation}
+r(x,t) = \frac{p(x,t + \Delta t) - p(x,t)}{p(x, t)} = R(x,t) - 1
+\label{eq:net_return}
+\end{equation}
+
+We primarily work with $ w(x,t) $ and $ R(x,t) $.
+
+\subsection{No Quantity}
+If the user provides only starting weights but no quantities:
+\begin{align}
+w(x, t_0) &= \frac{p(x, t_0)q(x, t_0)}{V_p(t_0)} \\
+q(x, t_0) &= \frac{w(x,t_0)  V_p(t_0)}{p(x, t_0)} 
+\end{align}
+Thus, we can assign $ V_p(t_0) $ an arbitrary constant value, and solve!
+
+\subsection{Floating Weights}
+Users may specify desired weights $ w_0 : X \to \mathbb{R}_{\geq 0} $ and rebalancing frequency $ \delta \in \mathbb{R}_{\geq 0} $.  
+From the definition of returns:
+\begin{equation}
+p(x, t + \Delta t) = p(x,t)R(x,t)
+\label{eq:price_evolution}
+\end{equation}
+Let $ \Delta q_x = q(x, t + \Delta t) - q(x,t) $. Then:
+\begin{align}
+V(x,t + \Delta t)
+&= p(x,t + \Delta t)q(x,t + \Delta t) \nonumber\\
+&= [p(x,t)R(x,t)][q(x,t) + \Delta q_x] \nonumber\\
+&= p(x,t)R(x,t)q(x,t) + p(x,t)R(x,t)\Delta q_x \nonumber\\
+&= V(x,t)R(x,t) + p(x,t)R(x,t)\Delta q_x
+\label{eq:value_evolution}
+\end{align}
+
+\subsubsection{Case 1: No Rebalancing}
+If no rebalancing occurs ($ \Delta q_x = 0 $):
+\begin{align}
+w(x, t + \Delta t)
+&= \frac{V(x,t + \Delta t)}{\sum_{i \in X} V(i, t + \Delta t)} \nonumber\\
+&= \frac{V(x,t)R(x,t)}{\sum_{i \in X} V(i,t)R(i,t)} \nonumber\\
+&= \frac{w(x,t)R(x,t)}{\sum_{i \in X} w(i,t) R(i,t)}
+\label{eq:weight_evolution}
+\end{align}
+Hence:
+\begin{equation}
+\boxed{w(x, t + \Delta t) = \frac{w(x,t)R(x,t)}{\sum_{i \in X} w(i,t) R(i,t)}}
+\end{equation}
+
+\subsubsection{Case 2: Rebalancing}
+If rebalancing occurs ($ t + \Delta t \equiv 0 \pmod{\delta} $), we adjust positions:
+\begin{align}
+V_p^{pre}(t + \Delta t) &= \sum_{i \in P_t} p(i, t + \Delta t)q(i, t) \label{eq:vpre}\\
+V_p^{post}(t + \Delta t) &= C + \sum_{i \in P_t} p(i, t + \Delta t)q(i, t + \Delta t) - F(\Delta q_i)
+\label{eq:vpost}
+\end{align}
+Thus:
+\begin{equation}
+V_p^{post} = V_p^{pre} + C - \sum_{i \in P_t}F(\Delta q_i)
+\label{eq:vpost_balance}
+\end{equation}
+After trading:
+\begin{equation}
+V(x,t + \Delta t)^{post} = w_0(x) V_p^{post}(t + \Delta t), \quad \forall x \in P_{t + \Delta t}
+\label{eq:post_value}
+\end{equation}
+Given $ V(x, t + \Delta t)^{post} = p(x, t + \Delta t)q(x, t + \Delta t) $, we get:
+\begin{align}
+q(x, t + \Delta t) &=  \frac{w_0(x) V_p^{post}(t + \Delta t)}{p(x, t + \Delta t)} \label{eq:q_post}\\
+\Delta q_x &=  \frac{w_0(x) V_p^{post}(t + \Delta t)}{p(x, t + \Delta t)} - q(x, t) \label{eq:dq_general}\\
+\Delta q_x &=  \frac{w_0(x)[V_p^{pre} + C - \sum_{i \in P_t}F(\Delta q_i)]}{p(x, t + \Delta t)} - q(x, t)
+\label{eq:dq_implicit}
+\end{align}
+Thus:
+\begin{equation}
+\boxed{\Delta q_x =  \frac{w_0(x)[V_p^{pre} + C - \sum_{i \in P_t}F(\Delta q_i)]}{p(x, t + \Delta t)} - q(x, t)}
+\label{eq:dq_box}
+\end{equation}
+Since $ F $ may depend on $ \Delta q_i $, numerical methods may be necessary.
+
+\paragraph{Flat Fee}
+Let $ F(\Delta q) = F_0 $ (constant):
+\begin{align}
+V_p^{post} &= V_p^{pre} + C - F_0 n \label{eq:flat_fee_vp}\\
+\Delta q_x &= \frac{w_0(x) [V_p^{pre} + C - F_0 n]}{p(x, t + \Delta t)} - q(x,t)
+\label{eq:flat_fee_dq}
+\end{align}
+where $ n = |\{x \in X : q(x,t) \neq q(x,t + \Delta t)\}| $.
+Note that if there is no commission fee then we simply set $F_0 = 0$.
+\paragraph{Proportional Fee}
+Let $ F(\Delta q_x) = \gamma |p(x, t + \Delta t) \Delta q_x| $, where $ \gamma $ is the commission rate:
+\begin{align}
+V_p^{post} &= V_p^{pre} + C - \sum_{i \in P_t}\gamma |p(x,t + \Delta t) \Delta q_i| \label{eq:prop_fee_vp}\\
+\Delta q_x &= \frac{w_0(x) [V_p^{pre} + C - \sum_{i \in P_t}\gamma |p(x,t + \Delta t) \Delta q_i|]}{p(x, t + \Delta t)} - q(x,t)
+\label{eq:prop_fee_dq}
+\end{align}
+Now we have an implicit equation in $\Delta q_x$. First for the sake of brevity, let 
+$p(x , t + \Delta t) := p$, $w_{0}(x) = w_{0, x}$. Start of with \ref{eq:prop_fee_dq}
+
+\begin{aligned}
+        \Delta q_x &= \dfrac{w_{0,x} [z]}{den}
+    
+\end{aligned}
+
+\end{document}

@@ -149,7 +149,6 @@ class MarketData():
 
         return df, div_yield, inc_date, net_expense_ratio
 
-<<<<<<< HEAD:notebooks/data/MarketData.py
     def getFXdata_intraday(self, from_curr: str, to_curr: str,
                        interval: str = "5min", output_size: str = "compact",
                        extended_hours: bool = False) -> pd.DataFrame:
@@ -184,16 +183,3 @@ class MarketData():
 
 	
 	 
-=======
-    def getCompanyOverview(self, ticker : list[str], wanted_attr : list[str] = ['']) -> dict:
-        """
-        Get the company overview as a dictionary
-        """
-        return
-    
-    def getCompanyOverviews(self, tickers : list[str], wanted_attr : list[str] = ['']) -> pd.DataFrame:
-        """
-        Get a dataframe filled with company overviews
-        """
-        return
->>>>>>> origin/main:pat_analytics/market_data/MarketData.py
