@@ -149,6 +149,42 @@ class MarketData():
 
         return df, div_yield, inc_date, net_expense_ratio
 
+<<<<<<< HEAD:notebooks/data/MarketData.py
+    def getFXdata_intraday(self, from_curr: str, to_curr: str,
+                       interval: str = "5min", output_size: str = "compact",
+                       extended_hours: bool = False) -> pd.DataFrame:
+        """
+        Fetch intraday FX as CSV and return a DataFrame
+        """
+        allowed = {"1min","5min","15min","30min","60min"}
+        if interval not in allowed:
+            raise ValueError(f"interval must be one of {allowed}")
+
+        url = (
+            f"{self.base_url}"
+            "function=FX_INTRADAY&"
+            f"from_symbol={from_curr}&"
+            f"to_symbol={to_curr}&"
+            f"interval={interval}&"
+            f"outputsize={output_size}&"
+            "datatype=csv&"
+            f"apikey={self.api_key}"
+        )
+
+        df = pd.read_csv(url)  # returns columns: timestamp, open, high, low, close
+
+        self.datetimeDecompose(df, "timestamp", doSecond=True, inplace=True)
+
+        # Reorder and index by epoch
+        cols = ["year","month","day","hour","minute","second","open","high","low","close"]
+        df = (df.set_index("epoch")
+            .reindex(columns=[c for c in cols if c in df.columns]))
+        return df
+
+
+	
+	 
+=======
     def getCompanyOverview(self, ticker : list[str], wanted_attr : list[str] = ['']) -> dict:
         """
         Get the company overview as a dictionary
@@ -160,3 +196,4 @@ class MarketData():
         Get a dataframe filled with company overviews
         """
         return
+>>>>>>> origin/main:pat_analytics/market_data/MarketData.py
