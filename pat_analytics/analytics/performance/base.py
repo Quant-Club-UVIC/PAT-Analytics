@@ -7,3 +7,5 @@ class PerformanceBase(AnalyticsBase):
     
     def __init__(self, portfolio):
         super().__init__(portfolio)
+    
+
