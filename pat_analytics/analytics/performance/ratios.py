@@ -25,13 +25,7 @@ class PerformanceRatios(AnalyticsBase):
         treynor_ratio=np.mean(excess_returns)/beta
 
         return treynor_ratio
-    def calculate_sharpe_ratio(self, risk_free_rate: float) -> float:
-        
-        excess_returns = self.returns - risk_free_rate
-        risk = np.std(self.returns)
-        sharpe_ratio = np.mean(excess_returns) / risk
 
-        return sharpe_ratio
     def calculate_alpha(self, risk_free_rate: float, benchmark_returns: pd.Series) -> float:
         
         beta = self.calculate_Beta(benchmark_returns)
@@ -39,6 +33,12 @@ class PerformanceRatios(AnalyticsBase):
         alpha = np.mean(self.returns) - expected_return
 
         return alpha
-    
+    def calculacate_sortino(self, risk_free_rate: float)->float:
+        excess_returns=self.returns - risk_free_rate
+        negative_returns=excess_returns[excess_returns<0]
+        downside_deviation=np.std(negative_returns)
+        sortino_ratio=np.mean(excess_returns)/downside_deviation
+
+        return sortino_ratio
 
 
