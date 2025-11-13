@@ -1,12 +1,12 @@
 import pandas as pd
 import numpy as np
 
-from pat_analytics.analytics.base import AnalyticsBase
+from pat_analytics.analytics.base import AnalyticsBase, GroupMixin
 
-class RiskBase(AnalyticsBase):
+class RiskBase(AnalyticsBase, GroupMixin):
 
-    def __init__(self, portfolio):
-        super().__init__(portfolio)
+    def __init__(self, portfolio, metadata):
+        super().__init__(portfolio, metadata)
         self.anualized = True
     
     @property

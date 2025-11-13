@@ -99,6 +99,18 @@ class Portfolio:
     @property
     def volume(self) -> pd.DataFrame: return self._field("volume")
 
+    @property
+    def tickers(self) -> list:
+        """
+        Expose the tickers.
+        TODO refactor to support p.industries, p.sectors, p.countries to get the list of <type>
+        in the portfolio.
+        """
+        name = 'ticker'
+        if name not in self._cache:
+            self._cache[name] = list(self.pxaction.columns.get_level_values(name).unique())
+        return self._cache[name]
+    
     """
     UTILS
     """
@@ -250,6 +262,20 @@ class Portfolio:
         sub_w = sub_w / sub_w.sum() #DOUBLE CHECK THIS LOGIC
         return Portfolio(pxaction=sub_px, metadata=sub_meta, weight=sub_w, rebalance_period=self.rebalance_period)
 
+    def partition(self, field : str) -> dict[str, Self]:
+        """
+        Partitions a portfolio by a field of metadata into 
+        a dict field value -> portfolio, which only contains
+        positions with the specific field value
+        """
+        if field not in self.metadata.columns.values:
+            raise ValueError(f"Given field {field} not found in metadata")
+
+        #for each field value, list of tickers
+        df = self.metadata.groupby(by=field).index.apply(list)
+
+        
+
     @property
     def risk(self):
         """
@@ -261,4 +287,6 @@ class Portfolio:
     
     @property
     def performance(self):
-        return
+        if self._performance is None:
+            self._performance = PerformanceBase(self)
+        return self._performance
