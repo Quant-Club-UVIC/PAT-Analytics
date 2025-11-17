@@ -76,7 +76,7 @@ class MarketData():
     """    
     
     def getPxAction(self, ticker : str, interval : str = '5min', extended_hours : bool = False,
-                    month : str | None = None, output_size : str = 'full', ) -> pd.DataFrame:
+                    month : str | None = None, output_size : str = 'full') -> pd.DataFrame:
         """
         Call the api to get a certain ticker as a df,
         with index as epoch timestamps, ohlc, and 
@@ -171,6 +171,8 @@ class MarketData():
         )
 
         df = pd.read_csv(url)  # returns columns: timestamp, open, high, low, close
+
+        print(df.to_string())
         
         self.datetimeDecompose(df, "timestamp", doSecond=True, inplace=True)
 
