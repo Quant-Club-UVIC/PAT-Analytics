@@ -3,7 +3,7 @@ import datetime
 import numpy as np
 from typing import Self
 
-from pat_analytics.engine.simple import SimpleBacktester
+from pat_analytics.backtesters.simple import SimpleBacktester
 
 from pat_analytics.analytics.risk import RiskBase
 from pat_analytics.analytics.performance import PerformanceBase

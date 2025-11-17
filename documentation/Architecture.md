@@ -105,7 +105,7 @@ The Portfolio object is a container of weights and quantity of stock one holds t
   - columns: tickers
   - Keeps track of the quanity of shares of each position
 
-## Usage  
+#### Usage  
 To interact with a Portfolio object you must specify a starting weight 
 ```python3
 tickers = ["NVDA", "DNUT"]

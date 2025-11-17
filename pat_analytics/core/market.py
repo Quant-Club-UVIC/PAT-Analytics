@@ -21,6 +21,15 @@ class Market:
                  dividend_data : pd.DataFrame = None,
                  macro_data : pd.DataFrame = None,
                  fx_data : pd.DataFrame = None):
+        """
+        Canonical constructor for the Market Object
+        price_data          : MultiIndex Dataframe [(ticker, type) x time] -> price (dollar amount)
+        meta_data           : Dataframe [ticker x data_type] -> value (sector, country, currency etc)
+        fundemental_data    : MultiIndex DataFrame [(ticker, type) x time] -> value () 
+        dividend_data       : DataFrame [ticker x time] -> dividend yield
+        macro_data          : DataFrame [t-bill type x time] -> yield
+        fx_data             : DataFrame [currency x time] -> price (1 Currency price in USD)
+        """
         
         self.price_data = price_data 
         self.dividend_data = dividend_data
@@ -45,10 +54,80 @@ class Market:
     def from_sql(cls):
         pass
     
+    @classmethod
+    def from_dict(cls, 
+                  price_dict        : dict[str, pd.DataFrame | pd.Series],
+                  meta_data         : pd.DataFrame = None,
+                  fundemental_dict  : dict[str, pd.DataFrame] = None,
+                  dividend_data     : pd.DataFrame = None,
+                  macro_data        : pd.DataFrame = None,
+                  fx_data           : pd.DataFrame = None
+    ):
+        """
+        Init a Portfolio object using a dictonary. Dictionary is from ticker to 
+        series or dataframe. 
+        If only a series is passed for each, interpreted as only the close price
+        Construct a multiindexed df to contain the data
+        """
+        frames = []
+
+        for ticker, obj in price_dict.items():
+            obj.index = obj[cls.DATE_FIELD]
+            if isinstance(obj, pd.Series): #close only
+                df = pd.DataFrame(index=obj.index)
+                for f in cls.REQUIRED_FIELDS:
+                    df[f] = obj if f == 'close' else np.nan
+
+            elif isinstance(obj, pd.DataFrame): #more than just close
+                df = obj.copy()
+                for f in cls.REQUIRED_FIELDS:
+                    if f not in df.columns:
+                        df[f] = np.nan
+                
+                df = df[cls.REQUIRED_FIELDS]
+
+            else:
+                raise TypeError(f"Unsuported type for {ticker} : {type(obj)}")
+            
+            df.columns = pd.MultiIndex.from_product([[ticker], df.columns] )
+            frames.append(df)
+        
+        data = pd.concat(frames, axis=1).sort_index(axis=1)
+
+
+        return cls(data, meta_data)
+
     #================ PRIVATE METHODS =============
     def _validate(self):
-        pass
-
+        """
+        Validates input
+        """
+        if not isinstance(self.price_data, pd.DataFrame):
+            raise TypeError("Price data must be a pandas DataFrame")
+        if not isinstance(self.price_data.columns, pd.MultiIndex):
+            raise TypeError("Price data must have multiindex columns, if using dict try from_dict()")
+        
+        if self.dividend_data is not None and not isinstance(self.dividend_data, pd.DataFrame):
+            raise TypeError("Dividend data must be a pandas DataFrame")
+        
+        if self.fundemental_data is not None:
+            if not isinstance(self.fundemental_data, pd.DataFrame):
+                raise TypeError("Fundemental Data must be a pandas DataFrame")
+            if not isinstance(self.fundemental_data.columns, pd.MultiIndex):
+                raise TypeError("Fundemental data must have multiindex columns")
+        
+        if self.meta_data is not None and not isinstance(self.meta_data, pd.DataFrame):
+            raise TypeError("Meta Data must be a pandas DataFrame")
+        
+        if self.macro_data is not None and not isinstance(self.macro_data, pd.DataFrame):
+            raise TypeError("Macro Data must be a dataframe")
+        
+        if self.fx_data is not None:
+            if not isinstance(self.fx_data, pd.DataFrame):
+                raise TypeError("FX Data must be a pandas DataFrame")
+            if not isinstance(self.fx_data.columns, pd.MultiIndex):
+                raise TypeError("FX Data must have multiindex columns")
+        
     #================ PUBLIC APIs ============
     def price(self, ticker : str, field : str = "close") -> pd.DataFrame:
         """
@@ -84,11 +163,11 @@ class Market:
             raise ValueError(f"Unable to find field {field} in fundemental data")
         return self.fundemental_data[ticker][field]
         
-
+    @property
     def tickers(self):
         """
         A list of tickers in each of the dataframes
         """
-        return list(self.price_data.columns.columns.levels[0])
+        return list(self.price_data.columns.levels[0])
 
 
