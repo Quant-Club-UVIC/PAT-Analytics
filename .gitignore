@@ -11,3 +11,4 @@ examples/config.py
 .eggs/
 **/__pycache__/**
 *.py[cod]
+.vscode/

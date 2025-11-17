@@ -7,7 +7,7 @@ from pat_analytics import Portfolio
 import pandas as pd
 
 
-stocks = ["DNUT", "META", "BABA", "SPY", "EL", "SBUX", "YUM"]
+stocks = ["AAPL", "LULU", "NVDA", "SPY"]
 weight = {}
 data = {}
 for s in stocks:

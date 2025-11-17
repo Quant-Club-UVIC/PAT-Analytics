@@ -1,6 +1,7 @@
 import pandas as pd
 import datetime
 import numpy as np
+from typing import Self
 
 from pat_analytics.engine.simple import SimpleBacktester
 
@@ -98,10 +99,21 @@ class Portfolio:
     @property
     def volume(self) -> pd.DataFrame: return self._field("volume")
 
+    @property
+    def tickers(self) -> list:
+        """
+        Expose the tickers.
+        TODO refactor to support p.industries, p.sectors, p.countries to get the list of <type>
+        in the portfolio.
+        """
+        name = 'ticker'
+        if name not in self._cache:
+            self._cache[name] = list(self.pxaction.columns.get_level_values(name).unique())
+        return self._cache[name]
+    
     """
     UTILS
     """
-
     def _parse_rebalance_period(self, period : str | pd.Timedelta | int | float | None) -> pd.Timedelta:
         """
         Parses the rebalance period. Period can be a str ('1D', '15min', etc),
@@ -239,6 +251,31 @@ class Portfolio:
         
         return (qty * price).sum(axis=1)
 
+    def subset(self, tickers : list[str]) -> Self:
+        """
+        Returns a subset the portfolio, given 
+        the tickers
+        """
+        sub_px = self.pxaction.loc[:, self.pxaction.columns.get_level_values(0).isin(tickers)]
+        sub_meta = self.metadata.loc[self.metadata.index.intersection(tickers)]
+        sub_w = self.w0.loc[self.w0.index.intersection(tickers)]
+        sub_w = sub_w / sub_w.sum() #DOUBLE CHECK THIS LOGIC
+        return Portfolio(pxaction=sub_px, metadata=sub_meta, weight=sub_w, rebalance_period=self.rebalance_period)
+
+    def partition(self, field : str) -> dict[str, Self]:
+        """
+        Partitions a portfolio by a field of metadata into 
+        a dict field value -> portfolio, which only contains
+        positions with the specific field value
+        """
+        if field not in self.metadata.columns.values:
+            raise ValueError(f"Given field {field} not found in metadata")
+
+        #for each field value, list of tickers
+        df = self.metadata.groupby(by=field).index.apply(list)
+
+        
+
     @property
     def risk(self):
         """
@@ -250,4 +287,6 @@ class Portfolio:
     
     @property
     def performance(self):
-        return
+        if self._performance is None:
+            self._performance = PerformanceBase(self)
+        return self._performance
