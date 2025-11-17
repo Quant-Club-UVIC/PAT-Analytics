@@ -40,7 +40,7 @@ perf = PerformanceReport(p, market)
 print(f"Sharpe : {risk.sharpe()}")
 print(f"Beta by sector : {risk.by_sector.beta()}")
 ```  
-This examples shows the 4 main componenets of PAT:  
+This examples shows the 5 main componenets of PAT:  
 - Market  
 - Portfolio  
 - Backtester  
