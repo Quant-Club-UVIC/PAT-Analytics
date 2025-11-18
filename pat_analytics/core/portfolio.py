@@ -4,6 +4,7 @@ import numpy as np
 from typing import Self
 
 from pat_analytics.engine.simple import SimpleBacktester
+from pat_analytics.engine.proportional import ProportionalBacktester
 
 from pat_analytics.analytics.risk import RiskBase
 from pat_analytics.analytics.performance import PerformanceBase
@@ -18,7 +19,8 @@ class Portfolio:
     DATE_FIELD = "datetime"
     REQUIRED_FIELDS = ['open', 'high', 'low', 'close', 'volume']
     BACKTESTERS = {
-        "simple" : SimpleBacktester
+        "simple" : SimpleBacktester,
+        "proportional" : ProportionalBacktester
     }
 
     def __init__(self, pxaction : pd.DataFrame, metadata : pd.DataFrame = None,  
@@ -49,7 +51,8 @@ class Portfolio:
         )
 
         print(f"INDEX OF PXACTION {pxaction.sort_index(axis=0, ascending=True).index}")
-
+        
+        self.cash = 0
         self.pxaction : pd.DataFrame = pxaction.sort_index()
         self.metadata : pd.DataFrame = metadata if (metadata is not None) else pd.DataFrame()
         self.rebalance_period : pd.Timedelta = self._parse_rebalance_period(rebalance_period)
@@ -145,7 +148,7 @@ class Portfolio:
         has_weight = init_weight is not None
 
         if has_qty == has_weight:
-            raise ValueError("Either specify quantity in metadata, or starting weight. Must have exactly one")
+            raise ValueError("Either specify quantity in metadata, OR starting weight. Must have exactly one")
         
         price : pd.Series = self.close.iloc[0, :] # first price
         tickers = price.index.astype(str)
@@ -218,7 +221,7 @@ class Portfolio:
     """
     PUBLIC METHODS
     """
-    def run_backtest(self, type : str = "simple", **kwargs) -> tuple[pd.DataFrame, pd.DataFrame]:
+    def run_backtest(self, type : str = "simple", **kwargs) -> tuple[pd.DataFrame, pd.DataFrame, float]:
         """
         Run a backtest, evolving the portfolio with or without rebalancing and/or 
         fee structure
@@ -229,7 +232,7 @@ class Portfolio:
             raise ValueError(f"No Backtester type : {type}")
         
         bt = cls(self, **kwargs)
-        self.weight, self.quantity = bt.run()
+        self.weight, self.quantity, self.cash = bt.run()
         return self.weight, self.quantity
     
     def get_total_returns(self) -> pd.Series:

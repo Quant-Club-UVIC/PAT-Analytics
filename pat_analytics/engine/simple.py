@@ -7,11 +7,12 @@ class SimpleBacktester(BaseBacktester):
     """
     Evolve the portfolio with no rebalance
     """
-    def __init__(self, portfolio, fee : float = 0.0):
+    def __init__(self, portfolio, fee : float = 0.0, cash : float = 0.0):
         super().__init__(portfolio)
         self.rebalance_period = portfolio.rebalance_period
         self.fees = fee
-
+        self.cash = cash
+    
     def run(self) -> tuple[pd.DataFrame, pd.DataFrame]:
         """
         Run the backtest : evolve the portfolio weights with basic rebalancing
@@ -45,7 +46,7 @@ class SimpleBacktester(BaseBacktester):
                 weights.iloc[idx] = (prev_w * prev_R) / market_growth
                 q_df.iloc[idx] = prev_q
 
-        return weights, q_df
+        return weights, q_df, self.cash
 
     def rebalance(self, w0 : pd.Series, 
                   q_cur: pd.Series,
