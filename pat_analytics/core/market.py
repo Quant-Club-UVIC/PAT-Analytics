@@ -5,6 +5,8 @@ Defines the Market class
 import pandas as pd
 import numpy as np
 
+from datetime import datetime
+
 class Market:
     """
     Contains ALL time-series and meta data for assets, immutable
@@ -162,7 +164,36 @@ class Market:
         if field not in self.fundemental_data[ticker].columns:
             raise ValueError(f"Unable to find field {field} in fundemental data")
         return self.fundemental_data[ticker][field]
+    
+    def up_to(self, time : datetime):
+        """
+        Returns a slice of the market up to time t
+        """
+        price_slice = self.price_data.loc[:time].copy()
+
+        div_slice = None
+        if self.dividend_data is not None:
+            div_slice = self.dividend_data.loc[:time].copy()
+
+        fund_slice = None
+        if self.fundemental_data is not None:
+            fund_slice = self.fundemental_data.loc[:time].copy()   
+
+        macro_slice = None
+        if self.macro_data is not None:
+            macro_slice = self.macro_data.loc[:time].copy()
         
+        fx_slice = None
+        if self.fx_data is not None:
+            fx_slice = self.fx_data.loc[:time].copy()
+        
+        return Market(price_data=price_slice,
+                      meta_data=self.meta_data,
+                      fundemental_data=fund_slice,
+                      dividend_data=div_slice,
+                      macro_data=macro_slice,
+                      fx_data=fx_slice)
+    
     @property
     def tickers(self):
         """

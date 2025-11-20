@@ -4,10 +4,12 @@ portfolio.py
 Defines the Portfolio class
 """
 import pandas as pd
+from datetime import datetime
 
 class Portfolio:
     """
-    
+    Portfolio class contains all information 
+    regarding a portfolio
     """
     def __init__(self, init_weight : pd.Series | str = None, init_quantity : pd.Series = None, init_market_value : float = 1.0):
         """
@@ -25,4 +27,17 @@ class Portfolio:
         self.quantity : pd.DataFrame = None
 
     
+    def up_to(self, time : datetime):
+        """
+        Returns a copy of the portfolio
+        but up to time t
+        """
+        new_port = Portfolio(self.w0, self.q0, self.mv0)
+
+        if self.weight is not None:
+            new_port.weight = self.weight.loc[:time].copy()
         
+        if self.quantity is not None:
+            new_port.quantity = self.quantity.loc[time].copy()
+        
+        return new_port
