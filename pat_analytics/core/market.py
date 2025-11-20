@@ -131,17 +131,31 @@ class Market:
                 raise TypeError("FX Data must have multiindex columns")
         
     #================ PUBLIC APIs ============
-    def price(self, ticker : str, field : str = "close") -> pd.DataFrame:
+    def price(self, ticker , field : str = "close") -> pd.DataFrame:
         """
-        Return a time-series of price of a single ticker
+        Return a time-series of price of a single ticker or multiple tickers
         """
         if field not in self.REQUIRED_FIELDS:
             raise ValueError(f"Invalid field : {field}")
-        if ticker not in self.price_data.columns.levels[0]:
-            raise ValueError(f"Ticker {ticker} not found in price data")
         
-        return self.price_data[ticker][field]
+        #normalize
+        if isinstance(ticker, str):
+            tickers = [ticker]
+        elif isinstance(ticker, (list, tuple, set)):
+            tickers = list(ticker)
+        else:
+            raise TypeError("Tickers must of type str or a list/tupple/set of strings")
+        
+        missing = [t for t in tickers if t not in self.price_data.columns.levels[0]]
+        if missing: 
+            raise ValueError(f"Tickers not found in price data {missing}")
+        
+        df = self.price_data[tickers][field]
+
+        #make sure output is a dataframe
+        return df if isinstance(df, pd.DataFrame) else df.to_frame()
     
+    #TODO: make the rest allowed for lists of tickers as well
     def dividends(self, ticker : str) -> pd.Series:
         """
         Return a timeseries of dividends of a ticker

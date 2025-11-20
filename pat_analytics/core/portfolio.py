@@ -6,27 +6,42 @@ Defines the Portfolio class
 import pandas as pd
 from datetime import datetime
 
+from pat_analytics import Market
+
 class Portfolio:
     """
     Portfolio class contains all information 
     regarding a portfolio
     """
-    def __init__(self, init_weight : pd.Series | str = None, init_quantity : pd.Series = None, init_market_value : float = 1.0):
+    def __init__(self, tickers : list[str], 
+                 market : Market,
+                 init_weight : pd.Series | str = None, 
+                 init_quantity : pd.Series = None, 
+                 init_market_value : float = 1.0):
         """
         Canonical constructor of portfolio
+        tickers             : list[str] (list of ticker names, or any unique identifiers)
         init_weight         : pd.Series [ticker] -> weight  | str (the weight of each position in the portfolio at the start)
         init_quantity       : pd.Series [ticker] -> quantity of stock (the quantity of each position in the portfolio at the start)
         init_market_value   : float (the starting market value of the portfolio in USD)
         User must provide either weight or quantity
         """
-        self.w0 = init_weight
-        self.q0 = init_quantity
+        self.market = market
+        self.tickers = tickers
+        self.w0, self.q0 = self._init_start_weight(init_weight, init_quantity)
         self.mv0 = init_market_value
 
         self.weight : pd.DataFrame = None
         self.quantity : pd.DataFrame = None
 
-    
+        self._validate()
+
+    def _validate(self):
+        """
+        Validates input
+        """
+        pass
+
     def up_to(self, time : datetime):
         """
         Returns a copy of the portfolio
@@ -41,3 +56,43 @@ class Portfolio:
             new_port.quantity = self.quantity.loc[time].copy()
         
         return new_port
+
+    def _init_start_weight(self, 
+                           init_weight : pd.Series | None,
+                           init_quantity : pd.Series | None
+                           ) -> tuple[pd.Series, pd.Series]:
+        """
+        If the user did not specify a weight, infer from share count in metadata. 
+        If they specified a weight then infer the amount of shares
+        """
+
+        has_qty : bool      = init_quantity is not None
+        has_weight : bool   = init_weight is not None
+
+        if has_qty == has_weight:
+            raise ValueError("Either specify quantity OR starting weight. Must have exactly one")
+        
+        price : pd.Series = self.market.price()
+        tickers = price.index.astype(str)
+
+        #align, sanity check, number crunch, return
+        if has_qty: #get weight
+            quantity : pd.Series = self.metadata[qty_col_name].reindex(tickers).fillna(0)
+            total_market_value : float = (quantity * price).sum()
+            if total_market_value <= 0:
+                raise ValueError("Market Value can not be zero!")
+            weight : pd.Series = (quantity * price) / total_market_value
+            return weight, quantity
+        
+        else: #get quantity
+            if isinstance(init_weight, str):
+                if init_weight == 'uniform':
+                    n = len(tickers)
+                    init_weight = pd.Series(1 / n, index=tickers, name='weight')
+
+            init_weight = init_weight.reindex(tickers).fillna(0)
+            if init_weight.sum() <= 0:
+                raise ValueError("Weights must sum to a positive value!")
+            init_weight /= init_weight.sum()
+            quantity : pd.Series = (default_market_value * init_weight)  / price 
+            return init_weight, quantity 

@@ -9,7 +9,7 @@ from pat_analytics.metrics import RiskReport, PerformanceReport
 parent_dir = Path.cwd().parent
 data_dir = parent_dir / "sample-data"
 
-tickers = ["AAPL", "SPY", "INTC"]
+tickers = ["AAPL", "SPY", "LULU"]
 price_data = {}
 for s in tickers:
     df = pd.read_csv(data_dir / f"{s}.csv")
