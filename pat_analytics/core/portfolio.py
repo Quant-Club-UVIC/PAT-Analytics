@@ -47,7 +47,7 @@ class Portfolio:
         Returns a copy of the portfolio
         but up to time t
         """
-        new_port = Portfolio(self.w0, self.q0, self.mv0)
+        new_port = Portfolio(self.market, init_weight=self.w0, init_market_value=self.mv0)
 
         if self.weight is not None:
             new_port.weight = self.weight.loc[:time].copy()

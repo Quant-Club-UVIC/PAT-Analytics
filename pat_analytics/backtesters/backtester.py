@@ -31,7 +31,7 @@ class Backtester:
         Runs the portfolio thru the market
         """
         index = self.market.price_data.index
-        tickers = self.market.price_data.columns
+        tickers = self.market.price_data.columns.levels[0]
 
         w0 : pd.Series = self.portfolio.w0
         q0 : pd.Series = self.portfolio.q0
