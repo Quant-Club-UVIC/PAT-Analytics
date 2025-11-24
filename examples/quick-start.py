@@ -19,7 +19,7 @@ for s in tickers:
 
 market = Market.from_dict(price_data)
 
-port = Portfolio(init_weight='uniform')
+port = Portfolio(tickers, market, init_weight='uniform')
 
 config = StratConfig()
 strat = BuyNHold(config=config)

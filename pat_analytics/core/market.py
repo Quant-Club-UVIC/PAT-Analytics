@@ -7,6 +7,7 @@ import numpy as np
 
 from datetime import datetime
 
+from pat_analytics.utils.utils import add_column_multiidx
 class Market:
     """
     Contains ALL time-series and meta data for assets, immutable
@@ -40,7 +41,7 @@ class Market:
         self.macro_data = macro_data
         self.fx_data = fx_data
 
-        self._validate()
+        self._validate_and_clean()
 
         self.cache = {} 
     
@@ -100,9 +101,9 @@ class Market:
         return cls(data, meta_data)
 
     #================ PRIVATE METHODS =============
-    def _validate(self):
+    def _validate_and_clean(self):
         """
-        Validates input
+        Validates and Cleans input
         """
         if not isinstance(self.price_data, pd.DataFrame):
             raise TypeError("Price data must be a pandas DataFrame")
@@ -130,13 +131,28 @@ class Market:
             if not isinstance(self.fx_data.columns, pd.MultiIndex):
                 raise TypeError("FX Data must have multiindex columns")
         
+        #ensure the indexes are datetimes, sorted in descending order
+        if not self.price_data.index.inferred_type == "datetime64":
+            raise TypeError("Indexes of price data must be datetime64 objects")
+        
+        self.price_data = self.price_data.sort_index()
+
+        # TODO do the above for the rest of the dfs
+
+        #create a fake position called 'CASH' to keep track of the users cash
+        self.price_data = add_column_multiidx(self.price_data, "CASH", 1)
+        
     #================ PUBLIC APIs ============
-    def price(self, ticker , field : str = "close") -> pd.DataFrame:
+    def price(self, ticker : str = "universe" , field : str = "close") -> pd.DataFrame:
         """
-        Return a time-series of price of a single ticker or multiple tickers
+        Return a time-series of price of a single ticker or multiple tickers,
+        if not given a ticker or passed a ticker 'universe' pass the entire dataframe
         """
         if field not in self.REQUIRED_FIELDS:
             raise ValueError(f"Invalid field : {field}")
+        
+        if ticker == 'universe':
+            return self.price_data.xs('close', axis=1, level=1)
         
         #normalize
         if isinstance(ticker, str):
