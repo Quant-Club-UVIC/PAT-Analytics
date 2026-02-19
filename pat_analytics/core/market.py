@@ -9,6 +9,8 @@ from pathlib import Path
 from datetime import datetime
 
 from pat_analytics.utils.utils import add_column_multiidx
+from pat_analytics.data import AlphaVantageLoader
+
 class Market:
     """
     Contains ALL time-series and meta data for assets, immutable
@@ -84,8 +86,15 @@ class Market:
         return cls.from_dict(price_dict, meta_data=meta_data)
 
     @classmethod
-    def from_alphavantage(cls):
-        pass
+    def from_alphavantage(cls, tickers: list, api_key: str, interval: str = '5min'):
+        loader = AlphaVantageLoader(api_key)
+        price_dict = {}
+        
+        for ticker in tickers:
+            print(f"Fetching {ticker}...")
+            price_dict[ticker] = loader.get_intraday_px(ticker, interval=interval)
+            
+        return cls.from_dict(price_dict)
 
     @classmethod
     def from_sql(cls):

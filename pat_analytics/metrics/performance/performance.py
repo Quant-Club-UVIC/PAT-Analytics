@@ -15,14 +15,26 @@ class PerformanceReport(Report):
     def plot_returns(self):
         """
         Generates and displays the Plotly chart for cumulative returns.
+        Dynamically applies rangebreaks based on data frequency.
         """
         returns = self.portfolio.get_returns()
+        
+        # Ensure correct DatetimeIndex
+        plot_index = pd.to_datetime(returns.index, unit='s' if returns.index.dtype == 'int64' else None)
         cum_ret = (1 + returns).cumprod() - 1
+
+        # DYNAMIC FREQUENCY CHECK
+        # Calculate the median time difference between points
+        if len(plot_index) > 1:
+            time_delta = pd.Series(plot_index).diff().median()
+            is_intraday = time_delta < pd.Timedelta(days=1)
+        else:
+            is_intraday = False
 
         fig = go.Figure()
 
         fig.add_trace(go.Scatter(
-            x=cum_ret.index,
+            x=plot_index,
             y=cum_ret.values,
             mode="lines",
             name="Portfolio Strategy",
@@ -31,31 +43,27 @@ class PerformanceReport(Report):
         ))
 
         fig.update_layout(
-            title={
-                'text': "Portfolio Cum Returns Performance",
-                'y': 0.9,
-                'x': 0.5,
-                'xanchor': 'center',
-                'yanchor': 'top'
-            },
-            xaxis_title="Date and Time",
+            title={'text': "Portfolio Cumulative Returns", 'x': 0.5},
+            xaxis_title="Date",
             yaxis_title="Cumulative Returns (%)",
+            yaxis_tickformat='.2%',
             template="plotly_white",
             hovermode="x unified"
         )
 
-        # handle time gaps (Weekends and Outside Market Hours)
-        fig.update_xaxes(
-            rangebreaks=[
-                dict(bounds=["sat", "mon"]),              # hide weekends
-                dict(bounds=[16, 9.5], pattern="hour")   # hide 4pm - 9:30am
-            ]
-        )
+        # APPLY RANGEBREAKS CONDITIONALLY
+        r_breaks = [dict(bounds=["sat", "mon"])] # Always hide weekends
+        
+        if is_intraday:
+            # Only hide non-trading hours if we are on intraday frequency
+            r_breaks.append(dict(bounds=[16, 9.5], pattern="hour"))
+            print("Intraday detected: Hiding overnight hours.")
+        else:
+            print("Daily+ frequency detected: Showing full days.")
 
-        # 5. Format Y-axis as percentage
-        fig.update_layout(yaxis_tickformat='.2%')
+        fig.update_xaxes(rangebreaks=r_breaks)
 
-        return fig # Return the figure object so the user can call .show() or further modify it
+        return fig
 
     def total_return(self):
         """A simple scalar metric for the report"""

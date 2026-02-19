@@ -6,12 +6,21 @@ build-backend = "setuptools.build_meta"
 name = "pat_analytics"
 version = "0.1.0"
 description = "Portfolio Analytics Toolkit"
+readme = "README.md"
 authors = [
     { name="Abil Nurgaliyev" }
 ]
+requires-python = ">=3.10"
 dependencies = [
     "pandas",
     "numpy",
-    "plotly"
+    "plotly",
+    "ipykernel",
+    "requests",
+    "nbformat>=4.2.0",
+    "ipywidgets",
+    "pytest"
 ]
 
+[tool.setuptools.packages.find]
+include = ["pat_analytics*"]  
