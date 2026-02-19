@@ -15,7 +15,6 @@ csv_paths = [data_dir / f"{s}.csv" for s in tickers]
 
 market = Market.from_csv(filepaths = csv_paths, date_col= 'epoch', unit='s')
 
-market = Market.from_dict(price_data)
 port = Portfolio(market, init_weight='uniform')
 config = StratConfig()
 strat = BuyNHold(config=config)

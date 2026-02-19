@@ -24,7 +24,8 @@ strat = BuyNHold()
 bt = Backtester(port, market, strat)
 bt.run()
 ```
-We initialized a portfolio, and will be using a simple buy and hold strategy (buy at start of period, and do nothing) and then backtest! Note: backtester takes into account fees as well, becareful they will eat your gains.
+We initialized a portfolio, and will be using a simple buy and hold strategy (buy at start of period, and do nothing) and then backtest!  
+Note: backtester takes into account fees as well, becareful they will eat your gains.
 ```python3
 rr = RiskReport(bt.portfolio, market, resample_freq='D')
 print(rr)
