@@ -128,3 +128,4 @@ class Portfolio:
         """
         self._returns = None
 
+    

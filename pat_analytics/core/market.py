@@ -4,6 +4,7 @@ Defines the Market class
 """
 import pandas as pd
 import numpy as np
+from pathlib import Path
 
 from datetime import datetime
 
@@ -45,9 +46,42 @@ class Market:
 
         self.cache = {} 
     
+
+
     @classmethod
-    def from_csv(cls):
-        pass
+    def from_csv(cls, 
+                 filepaths: list[str | Path] | dict[str, str | Path], 
+                 date_col: str = 'datetime', 
+                 unit: str = 's', 
+                 meta_data: pd.DataFrame = None):
+        """
+        Initializes Market from CSV files using pathlib.
+        
+        filepaths: 
+            - If list: [Path("data/AAPL.csv"), "data/SPY.csv"]
+            - If dict: {"AAPL": Path("data/custom_file.csv")}
+        """
+        price_dict = {}
+        
+        # Normalize input to a dictionary of {ticker: Path}
+        if isinstance(filepaths, list):
+            paths_dict = {Path(f).stem: Path(f) for f in filepaths}
+        else:
+            paths_dict = {ticker: Path(p) for ticker, p in filepaths.items()}
+
+        for ticker, path in paths_dict.items():
+            if not path.exists():
+                raise FileNotFoundError(f"Could not find CSV for {ticker} at {path}")
+                
+            df = pd.read_csv(path)
+            
+            # Use the provided date_col and convert to datetime
+            df[cls.DATE_FIELD] = pd.to_datetime(df[date_col], unit=unit)
+            
+            # The from_dict method will handle the MultiIndex construction
+            price_dict[ticker] = df
+
+        return cls.from_dict(price_dict, meta_data=meta_data)
 
     @classmethod
     def from_alphavantage(cls):

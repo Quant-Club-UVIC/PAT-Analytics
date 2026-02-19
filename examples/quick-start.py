@@ -1,31 +1,29 @@
 from pathlib import Path
 import pandas as pd
+import plotly.graph_objects as go
 
 from pat_analytics import Market, Portfolio
 from pat_analytics.strategy import BuyNHold, StratConfig
 from pat_analytics.backtesters import Backtester
 from pat_analytics.metrics import RiskReport, PerformanceReport
 
-parent_dir = Path.cwd().parent
-data_dir = parent_dir / "sample-data"
 
+data_dir = Path.cwd().parent / "sample-data"
 tickers = ["AAPL", "SPY", "LULU"]
-price_data = {}
-for s in tickers:
-    df = pd.read_csv(data_dir / f"{s}.csv")
-    df['datetime'] = pd.to_datetime(df['epoch'], unit='s')
-    df = df[['datetime', 'open', 'high', 'low', 'close', 'volume']]
-    price_data[s] = df
+
+csv_paths = [data_dir / f"{s}.csv" for s in tickers]
+
+market = Market.from_csv(filepaths = csv_paths, date_col= 'epoch', unit='s')
 
 market = Market.from_dict(price_data)
-
-port = Portfolio(tickers, market, init_weight='uniform')
-
+port = Portfolio(market, init_weight='uniform')
 config = StratConfig()
 strat = BuyNHold(config=config)
-
 bt = Backtester(port, market, strat)
 
 bt.run()
+rr = RiskReport(bt.portfolio, market, resample_freq='D')
+rr
 
-print(bt.portfolio.get_returns())
+pr = PerformanceReport(bt.portfolio, market)
+pr.plot_returns().show()
