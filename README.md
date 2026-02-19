@@ -5,7 +5,14 @@ PAT-Analytics is a python library enabling user to fetch market data, create por
 **THIS TOOL IS STILL IN EARLY DEVELOPMENT AND MAY CONTAIN BUGS, UNFINISHED FEATURES, AND POOR DOCUMENTATION. BE AWARE!**
 # Quick Set-Up 
 ## For Users
-If you wish to use the library, make sure to clone the repo and then 
+If you wish to use the library, make sure to clone the repo and set up a virtual environment
+```bash
+git clone git@github.com:Quant-Club-UVIC/PAT-Analytics.git
+cd PAT-Analytics
+python3 -m venv venv
+source venv/bin/activate
+```
+ and then 
 ```bash
 pip3 install -e .
 ```  

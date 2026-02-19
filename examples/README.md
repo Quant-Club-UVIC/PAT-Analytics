@@ -9,11 +9,11 @@ Make a config.py file in examples/ in the form
 ```python3
 api_key = "secret_api_key123"
 ```
-Make a new directory in /examples
+Open scrapeMarketData.py and adjust to the tickers you are interested in, then run
 ```bash
-mkdir sampleData
+python3 scrapeMarketData.py
 ```
-Run the scrapeMarketData.py, adjust to the tickers you are interested in. We are downloading the previous 100 days of daily price. Also gets some facts about SPY for example. This might take a bit  
+We are downloading the previous 100 days of daily price. Also gets some facts about SPY for example. This might take a bit  
 
 ## Running the Backtester + VaR + Chart
 Go to QuickStarting.ipynb, fill in your tickers and run!

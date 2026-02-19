@@ -16,7 +16,10 @@ dependencies = [
     "numpy",
     "plotly",
     "ipykernel",
-    "requests"
+    "requests",
+    "nbformat>=4.2.0",
+    "ipywidgets",
+    "pytest"
 ]
 
 [tool.setuptools.packages.find]
