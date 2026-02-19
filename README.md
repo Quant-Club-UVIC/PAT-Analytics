@@ -4,7 +4,6 @@ PAT-Analytics is a python library enabling user to fetch market data, create por
 # DISCLAIMER  
 **THIS TOOL IS STILL IN EARLY DEVELOPMENT AND MAY CONTAIN BUGS, UNFINISHED FEATURES, AND POOR DOCUMENTATION. BE AWARE!**
 # Quick Set-Up 
-## For Users
 If you wish to use the library, make sure to clone the repo and set up a virtual environment
 ```bash
 git clone git@github.com:Quant-Club-UVIC/PAT-Analytics.git
@@ -16,6 +15,8 @@ source venv/bin/activate
 ```bash
 pip3 install -e .
 ```  
+# Example Usage
+Follow the README in [/examples](/examples/) for more information.  
 Here is a simple script to get the Conditional-VaR of a portfolio, with data
 ```python3
 data_dir = Path.cwd().parent / "sample-data" # month of August 2025
