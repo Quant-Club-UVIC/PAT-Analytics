@@ -34,6 +34,8 @@ class Portfolio:
         self.weight : pd.DataFrame = None
         self.quantity : pd.DataFrame = None
 
+        self._returns : pd.Series = None 
+
         self._validate()
 
     def _validate(self):
@@ -98,17 +100,31 @@ class Portfolio:
             
             return weight, quantity
 
-    def get_returns(self) -> pd.Series:
+    def get_returns(self, freq : str = None) -> pd.Series:
         """
-        Returns the returns of a portfolio 
-        with non-empty weight df
+        Returns the returns of a portfolio with non-empty weight df
+        freq : str, optional
+            Pandas offset alias (e.g., 'D', 'W', 'H'). If provided, 
+            returns are resampled to this frequency.
         """
-        if self.quantity is None:
-            raise ValueError("Portfolio has not been backtested yet.")
+        if self._returns is None or freq is not None: #in case we go H->D->H in cache
 
-        prices = self.market.price(field="close")
+            if self.quantity is None:
+                raise ValueError("Portfolio has not been backtested yet.")
 
-        mv = (self.quantity * prices).sum(axis=1)
-        returns = mv.pct_change()
-        return returns
+            prices = self.market.price(field="close")
+
+            mv = (self.quantity * prices).sum(axis=1)
+            self._returns = mv.pct_change().dropna()
+
+        if freq:
+            return self._returns.resample(freq).sum().dropna()
+        
+        return self._returns
+    
+    def clear_cache(self):
+        """
+        Helper to clear cached data if portfolio data changes
+        """
+        self._returns = None
 
