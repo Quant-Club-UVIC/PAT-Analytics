@@ -19,5 +19,5 @@ dependencies = [
     "requests"
 ]
 
-[tool.setuptools]
-packages = ["pat_analytics"]
+[tool.setuptools.packages.find]
+include = ["pat_analytics*"]  
