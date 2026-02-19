@@ -1,23 +1,36 @@
-from pat_analytics import MarketData
-import config # where the api key is stored
-
-import pandas as pd
-import datetime
+from pat_analytics.data import AlphaVantageLoader
+import config # where api_key is stored
 import time
+from pathlib import Path
 
-date_start = datetime.date(2021, 8, 1)
-date_end = datetime.date(2021, 10, 1)
-data = MarketData(config.api_key, (date_start, date_end))
+loader = AlphaVantageLoader(config.api_key)
 
-tickers = ["SBUX", "EL", "DNUT", "YUM"]
+output_dir = Path("./sample-data")
+output_dir.mkdir(exist_ok=True)
+
+tickers = ["SBUX", "EL", "DNUT", "YUM", "AAPL"]
+
 for ticker in tickers:
-    month = '2025-08'
-    df = data.getPxAction(ticker, month=month)
-    df.to_csv(f'{ticker}.csv')
-    time.sleep(3)
+    print(f"Fetching daily data for {ticker}...")
 
-"""ticker_etf = 'SPY'
-df, div_yield, inc_date, ner = data.getETFmetadata(ticker_etf)
-df.to_csv(f'{ticker_etf}_constit.csv')
-assert (isinstance(div_yield, float) and isinstance(ner, float))
-print(f"{ticker_etf} was incorporated in {inc_date}, and has a div yield of {div_yield}, and costs {ner}")"""
+    #fetching the last 100 days
+    df_daily = loader.get_daily_px(ticker, output_size='compact')
+    
+    csv_path = output_dir / f"{ticker}.csv" 
+    
+    df_daily.to_csv(csv_path)
+    time.sleep(15) 
+
+# download ETF Metadata (Example for SPY)
+ticker_etf = 'SPY'
+print(f"\nFetching metadata for {ticker_etf}...")
+metadata = loader.get_etf_profile(ticker_etf)
+
+# Extracting data from the returned dictionary
+df_constit = metadata['holdings']
+df_constit.to_csv(output_dir / f'{ticker_etf}_constit.csv', index=False)
+
+print(f"{ticker_etf} Profile:")
+print(f"- Inception: {metadata['inception']}")
+print(f"- Div Yield: {metadata['div_yield']}")
+print(f"- Expense Ratio: {metadata['expense_ratio']}")
