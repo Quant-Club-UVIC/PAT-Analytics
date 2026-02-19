@@ -11,38 +11,41 @@ pip3 install -e .
 ```  
 Here is a simple script to get the Conditional-VaR of a portfolio, with data
 ```python3
-from pat_analytics import Portfolio, MarketData
-tickers = ["LULU", "NVDA", "SPY"]
-data = MarketData("my_secret_api_key").getPxActions(tickers)
-p = Portfolio(data, weight='uniform')
-print(p.risk.var.cvar)
-```
-Or if you do not want to call the API every time, here is an example of 
-calculating sharpe by sector (This is not implemented yet, but a possible user story)
-```python3
-from pat_analytics import Portfolios
-tickers = {"LULU" : "lulu.csv", "NVDA" : "nvda.csv", "SPY" : "spy.csv"}
-p = Portfolio.from_csv(tickers, weight='uniform')
-print(p.performance.sharpe.by_sector())
-```
-## For Contributors
-Need to install the necessary dependancies, after cloning the repo in main/ type  
-```bash
-python3.12 -m venv venv
-source venv/bin/activate
-pip3 install -r requirements.txt
-```  
+data_dir = Path.cwd().parent / "sample-data" # month of August 2025
+tickers = ["AAPL", "SPY", "LULU"]
 
+csv_paths = [data_dir / f"{s}.csv" for s in tickers]
+market = Market.from_csv(filepaths = csv_paths, date_col= 'epoch', unit='s')
+```
+Create a Market class, which will hold ALL data regarding the market
+```python3
+port = Portfolio(market, init_weight='uniform')
+strat = BuyNHold()
+bt = Backtester(port, market, strat)
+bt.run()
+```
+We initialized a portfolio, and will be using a simple buy and hold strategy (buy at start of period, and do nothing) and then backtest!  
+Note: backtester takes into account fees as well, becareful they will eat your gains.
+```python3
+rr = RiskReport(bt.portfolio, market, resample_freq='D')
+print(rr)
+```
+```bash
+RiskReport({
+    "time_scale": "custom",
+    "confidence_level": 0.95,
+    "window": 252,
+    "var": 0.008605559410797811,
+    "cvar": 0.01344206966134781
+})
+```
+Or if instead we want to look at the portfolio performance
+```python3
+pr = PerformanceReport(bt.portfolio, market)
+pr.plot_returns().show()
+```
+![Performance](assets/readme_example.png)
+Of course more complex features can be seen in [/examples](/examples).   
+Enjoy!
 # Code-Base  
 Main source-code is located in pat_analytics/ , the main object *Portfolio* is defined in portfolio.py. If you wish to see how to run our code check out examples/. All of our work-in-progress notebooks and scripts are in work-in-progress/.  
-
-# To Contributors  
-If you add dependencies to this project (pandas, requests, etc) you must update the requirements.txt, you can do this by  
-```python3
-pip3 install pipreqs  
-pipreqs --force ./
-```
-Do this in main/ of course.  
-If you have come up with a new model, add your whitepaper for it in documentation/, after review it will be added to the main .tex file
-# Contributors  
-Add here later

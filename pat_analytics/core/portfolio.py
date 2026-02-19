@@ -1,295 +1,131 @@
+"""
+portfolio.py
+
+Defines the Portfolio class
+"""
 import pandas as pd
-import datetime
-import numpy as np
-from typing import Self
+from datetime import datetime
 
-from pat_analytics.engine.simple import SimpleBacktester
-from pat_analytics.engine.proportional import ProportionalBacktester
-
-from pat_analytics.analytics.risk import RiskBase
-from pat_analytics.analytics.performance import PerformanceBase
+from pat_analytics import Market
 
 class Portfolio:
     """
-    Main way users interact with pat_analytics  
-    Given cleaned market data, performs portfolio computations
+    Portfolio class contains all information 
+    regarding a portfolio
     """
-
-    FIELD_LEVEL = "field"
-    DATE_FIELD = "datetime"
-    REQUIRED_FIELDS = ['open', 'high', 'low', 'close', 'volume']
-    BACKTESTERS = {
-        "simple" : SimpleBacktester,
-        "proportional" : ProportionalBacktester
-    }
-
-    def __init__(self, pxaction : pd.DataFrame, metadata : pd.DataFrame = None,  
-                 weight : pd.Series | str = None, rebalance_period : str = "none"):
+    def __init__(self,
+                 market : Market,
+                 init_weight : pd.Series | str = None, 
+                 init_quantity : pd.Series = None, 
+                 init_market_value : float = 1.0):
         """
-        Cannonical constructor. Expects a Multiindexed Dataframe
-
-        pxaction        : MultiIndex Dataframe [(ticker, type) x time] -> price (dollar amount)
-        metadata        : Dataframe [data_type x ticker] -> value (sector, 2023Q1 earnings, country, currency etc)
-        weight          : Series [ticker] -> weight (must add up to 1), if None then metadata must include 'amt_shares'
-        rebalance_period: String for how often to rebalance the weights to original
-        market_value    : If no share amount is given, get a starting market value of the portfolio
-
-        The user is free to either give quantity of shares they own through the metadata table in a column named
-        'quantity', or specify their starting weight through the weight Series.  
+        Canonical constructor of portfolio
+        market              : Market (Market object)
+        init_weight         : pd.Series [ticker] -> weight  | str (the weight of each position in the portfolio at the start)
+        init_quantity       : pd.Series [ticker] -> quantity of stock (the quantity of each position in the portfolio at the start)
+        init_market_value   : float (the starting market value of the portfolio in USD)
+        User must provide either weight or quantity
         """
+        self.market = market
+        self.mv0 = init_market_value
+        self.w0, self.q0 = self._init_start_weight(init_weight, init_quantity)
+    
 
-        if not isinstance(pxaction, pd.DataFrame):
-            raise TypeError("Data must be a pandas DataFrame")
-        if not isinstance(pxaction.columns, pd.MultiIndex):
-            raise ValueError("Data must have multiindex columns, if using dict try from_dict()")
-        
-        # TODO : MAKE SURE DATETIME COLUMN EXISTS
-        #normalize cols
-        pxaction.columns = pd.MultiIndex.from_tuples(
-            [(str(sym), str(field)) for sym, field in pxaction.columns],
-            names=['ticker', self.FIELD_LEVEL]
-        )
-
-        print(f"INDEX OF PXACTION {pxaction.sort_index(axis=0, ascending=True).index}")
-        
-        self.cash = 0
-        self.pxaction : pd.DataFrame = pxaction.sort_index()
-        self.metadata : pd.DataFrame = metadata if (metadata is not None) else pd.DataFrame()
-        self.rebalance_period : pd.Timedelta = self._parse_rebalance_period(rebalance_period)
-
-        #cache (have the slices ready)
-        self._cache = {} 
-        
-        #starting weight and share quantity
-        self.w0 , self.q0 = self._init_start_weight(weight)
-
-        self.returns : pd.DataFrame = 1 + self.close.pct_change().fillna(0)
-
-        # users must backtest for this value
-        self.weight : pd.DataFrame = None 
+        self.weight : pd.DataFrame = None
         self.quantity : pd.DataFrame = None
 
-        # user must use the respective sub-classes to init these
-        self._risk = None
-    
-    def _field(self, name : str) -> pd.DataFrame:
-        """
-        For caching slices, and easy access to just close, open etc
-        """
-        if name not in self._cache:
-            self._cache[name] = self.pxaction.xs(name, axis=1, level=self.FIELD_LEVEL)
+        self._returns : pd.Series = None 
 
-        return self._cache[name]
-    
-    def clear_cache(self):
+        self._validate()
+
+    def _validate(self):
         """
-        If pxaction df changes, easy to clear the cache
+        Validates input
         """
-        self._cache.clear() 
+        pass
+
+    def up_to(self, time : datetime):
+        """
+        Returns a copy of the portfolio
+        but up to time t
+        """
+        new_port = Portfolio(self.market, init_weight=self.w0, init_market_value=self.mv0)
+
+        if self.weight is not None:
+            new_port.weight = self.weight.loc[:time].copy()
         
-    @property
-    def open(self) -> pd.DataFrame: return self._field("open")
-    
-    @property
-    def high(self) -> pd.DataFrame: return self._field("high")
-    
-    @property
-    def low(self) -> pd.DataFrame: return self._field("low")
-    
-    @property
-    def close(self) -> pd.DataFrame: return self._field("close")
-    
-    @property
-    def volume(self) -> pd.DataFrame: return self._field("volume")
-
-    @property
-    def tickers(self) -> list:
-        """
-        Expose the tickers.
-        TODO refactor to support p.industries, p.sectors, p.countries to get the list of <type>
-        in the portfolio.
-        """
-        name = 'ticker'
-        if name not in self._cache:
-            self._cache[name] = list(self.pxaction.columns.get_level_values(name).unique())
-        return self._cache[name]
-    
-    """
-    UTILS
-    """
-    def _parse_rebalance_period(self, period : str | pd.Timedelta | int | float | None) -> pd.Timedelta:
-        """
-        Parses the rebalance period. Period can be a str ('1D', '15min', etc),
-        an int to indicate days, or None to not rebalance at all.
-        """
-        if period == "none" or period is None:
-            return None
-
-        if isinstance(period, pd.Timedelta):
-            return period
+        if self.quantity is not None:
+            new_port.quantity = self.quantity.loc[:time].copy()
         
-        if isinstance(period, (int, float)):
-            return pd.to_timedelta(period, 'D')
+        return new_port
 
-        try:
-            return pd.to_timedelta(period)
-        except:
-            raise ValueError(f"Invalid rebalance period '{period}'. Use eg \'1D\', \'15min\', \'30s\' or numeric days")
-    
-    def _init_start_weight(self, init_weight : pd.Series | None) -> tuple[pd.Series, pd.Series]:
+    def _init_start_weight(self, 
+                           init_weight : pd.Series | None,
+                           init_quantity : pd.Series | None
+                           ) -> tuple[pd.Series, pd.Series]:
         """
         If the user did not specify a weight, infer from share count in metadata. 
         If they specified a weight then infer the amount of shares
         """
-        qty_col_name = 'quantity'
-        default_market_value = 1.0
 
-        has_qty = qty_col_name in self.metadata.columns
-        has_weight = init_weight is not None
+        has_qty : bool      = init_quantity is not None
+        has_weight : bool   = init_weight is not None
 
         if has_qty == has_weight:
-            raise ValueError("Either specify quantity in metadata, OR starting weight. Must have exactly one")
+            raise ValueError("Either specify quantity OR starting weight. Must have exactly one")
         
-        price : pd.Series = self.close.iloc[0, :] # first price
-        tickers = price.index.astype(str)
+        price0 = self.market.price().iloc[0]
+        tickers = price0.index.values
 
-        #align, sanity check, number crunch, return
-        if has_qty: #get weight
-            quantity : pd.Series = self.metadata[qty_col_name].reindex(tickers).fillna(0)
-            total_market_value : float = (quantity * price).sum()
-            if total_market_value <= 0:
-                raise ValueError("Market Value can not be zero!")
-            weight : pd.Series = (quantity * price) / total_market_value
-            return weight, quantity
-        
-        else: #get quantity
+        if has_weight: #get qty
             if isinstance(init_weight, str):
                 if init_weight == 'uniform':
-                    n = len(tickers)
-                    init_weight = pd.Series(1 / n, index=tickers, name='weight')
-
+                    n = len(tickers) + 1 #cash
+                    init_weight = pd.Series( 1 / n, index=tickers, name = 'weight')
+            
             init_weight = init_weight.reindex(tickers).fillna(0)
             if init_weight.sum() <= 0:
                 raise ValueError("Weights must sum to a positive value!")
-            init_weight /= init_weight.sum()
-            quantity : pd.Series = (default_market_value * init_weight)  / price 
-            return init_weight, quantity 
-
-    
-    """
-    ALTERNATE CONSTRUCTORS
-    """
-    @classmethod
-    def from_dict(cls, 
-                  data_dict         : dict[str, pd.DataFrame | pd.Series],
-                  metadata          : pd.DataFrame = None,
-                  weight            : pd.Series = None,
-                  rebalance_period  : str = "none"):
-        """
-        Init a Portfolio object using a dictonary. Dictionary is from ticker to 
-        series or dataframe. 
-        If only a series is passed for each, interpreted as only the close price
-        Construct a multiindexed df to contain the data
-        """
-        frames = []
-
-        for ticker, obj in data_dict.items():
-            obj.index = obj[cls.DATE_FIELD]
-            if isinstance(obj, pd.Series): #close only
-                df = pd.DataFrame(index=obj.index)
-                for f in cls.REQUIRED_FIELDS:
-                    df[f] = obj if f == 'close' else np.nan
-
-            elif isinstance(obj, pd.DataFrame): #more than just close
-                df = obj.copy()
-                for f in cls.REQUIRED_FIELDS:
-                    if f not in df.columns:
-                        df[f] = np.nan
-                
-                df = df[cls.REQUIRED_FIELDS]
-
-            else:
-                raise TypeError(f"Unsuported type for {ticker} : {type(obj)}")
+            weight = init_weight / init_weight.sum()
+            quantity : pd.Series = (self.mv0 * init_weight)  / price0
             
-            df.columns = pd.MultiIndex.from_product([[ticker], df.columns] )
-            frames.append(df)
-        
-        data = pd.concat(frames, axis=1).sort_index(axis=1)
+            return weight, quantity 
 
-        return cls(data, metadata, weight, rebalance_period)
-        
-    """
-    PUBLIC METHODS
-    """
-    def run_backtest(self, type : str = "simple", **kwargs) -> tuple[pd.DataFrame, pd.DataFrame, float]:
+        else: #get weight
+            quantity : pd.Series = init_quantity.reindex(tickers).fillna(0)
+            self.mv0 = (quantity * price0).sum()
+            if self.mv0 <= 0:
+                raise ValueError("Market Value can not be zero!")
+            weight : pd.Series = (quantity * price0) / self.mv0
+            
+            return weight, quantity
+
+    def get_returns(self, freq : str = None) -> pd.Series:
         """
-        Run a backtest, evolving the portfolio with or without rebalancing and/or 
-        fee structure
+        Returns the returns of a portfolio with non-empty weight df
+        freq : str, optional
+            Pandas offset alias (e.g., 'D', 'W', 'H'). If provided, 
+            returns are resampled to this frequency.
         """
+        if self._returns is None or freq is not None: #in case we go H->D->H in cache
+
+            if self.quantity is None:
+                raise ValueError("Portfolio has not been backtested yet.")
+
+            prices = self.market.price(field="close")
+
+            mv = (self.quantity * prices).sum(axis=1)
+            self._returns = mv.pct_change().dropna()
+
+        if freq:
+            return self._returns.resample(freq).sum().dropna()
         
-        cls = self.BACKTESTERS.get(type)
-        if cls is None:
-            raise ValueError(f"No Backtester type : {type}")
-        
-        bt = cls(self, **kwargs)
-        self.weight, self.quantity, self.cash = bt.run()
-        return self.weight, self.quantity
+        return self._returns
     
-    def get_total_returns(self) -> pd.Series:
+    def clear_cache(self):
         """
-        Returns the returns of the portfolio as percent change
-        or as dollar amount, depending on the isDollar flag
+        Helper to clear cached data if portfolio data changes
         """
+        self._returns = None
 
-        returns, weights = self.returns.align(self.weight, join="inner", axis=1)
 
-        #as net return per time frame, NOT GROSS
-        return (returns * weights).sum(axis = 1)
-        
-    def get_market_value(self) -> pd.Series:
-        """
-        Recieve the market value of the portfolio in dollar amount
-        """
-        qty, price = self.quantity.align(self.close, join="inner", axis=1)
-        
-        return (qty * price).sum(axis=1)
-
-    def subset(self, tickers : list[str]) -> Self:
-        """
-        Returns a subset the portfolio, given 
-        the tickers
-        """
-        sub_px = self.pxaction.loc[:, self.pxaction.columns.get_level_values(0).isin(tickers)]
-        sub_meta = self.metadata.loc[self.metadata.index.intersection(tickers)]
-        sub_w = self.w0.loc[self.w0.index.intersection(tickers)]
-        sub_w = sub_w / sub_w.sum() #DOUBLE CHECK THIS LOGIC
-        return Portfolio(pxaction=sub_px, metadata=sub_meta, weight=sub_w, rebalance_period=self.rebalance_period)
-
-    def partition(self, field : str) -> dict[str, Self]:
-        """
-        Partitions a portfolio by a field of metadata into 
-        a dict field value -> portfolio, which only contains
-        positions with the specific field value
-        """
-        if field not in self.metadata.columns.values:
-            raise ValueError(f"Given field {field} not found in metadata")
-
-        #for each field value, list of tickers
-        df = self.metadata.groupby(by=field).index.apply(list)
-
-        
-
-    @property
-    def risk(self):
-        """
-        Exposes to the risk classes
-        """
-        if self._risk is None:
-            self._risk = RiskBase(self)
-        return self._risk
-    
-    @property
-    def performance(self):
-        if self._performance is None:
-            self._performance = PerformanceBase(self)
-        return self._performance
