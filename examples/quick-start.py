@@ -28,4 +28,4 @@ bt = Backtester(port, market, strat)
 
 bt.run()
 
-print(market.tickers)
+print(bt.portfolio.get_returns())

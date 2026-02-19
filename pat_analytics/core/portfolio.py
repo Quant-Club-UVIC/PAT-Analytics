@@ -53,7 +53,7 @@ class Portfolio:
             new_port.weight = self.weight.loc[:time].copy()
         
         if self.quantity is not None:
-            new_port.quantity = self.quantity.loc[time].copy()
+            new_port.quantity = self.quantity.loc[:time].copy()
         
         return new_port
 
@@ -98,6 +98,17 @@ class Portfolio:
             
             return weight, quantity
 
+    def get_returns(self) -> pd.Series:
+        """
+        Returns the returns of a portfolio 
+        with non-empty weight df
+        """
+        if self.quantity is None:
+            raise ValueError("Portfolio has not been backtested yet.")
 
+        prices = self.market.price(field="close")
 
+        mv = (self.quantity * prices).sum(axis=1)
+        returns = mv.pct_change()
+        return returns
 
