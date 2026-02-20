@@ -77,19 +77,22 @@ class Portfolio:
         price0 = self.market.price().iloc[0]
         tickers = price0.index.values
 
+        valid_at_start = price0.dropna().index
+
         if has_weight: #get qty
             if isinstance(init_weight, str):
                 if init_weight == 'uniform':
                     n = len(tickers) + 1 #cash
-                    init_weight = pd.Series( 1 / n, index=tickers, name = 'weight')
+                    init_weight = pd.Series(0.0, index=tickers)
+                    init_weight[valid_at_start] = 1/n
             
             init_weight = init_weight.reindex(tickers).fillna(0)
             if init_weight.sum() <= 0:
                 raise ValueError("Weights must sum to a positive value!")
             weight = init_weight / init_weight.sum()
-            quantity : pd.Series = (self.mv0 * init_weight)  / price0
+            quantity = (self.mv0 * init_weight)  / price0
             
-            return weight, quantity 
+            return weight, quantity.fillna(0)
 
         else: #get weight
             quantity : pd.Series = init_quantity.reindex(tickers).fillna(0)
@@ -100,27 +103,31 @@ class Portfolio:
             
             return weight, quantity
 
-    def get_returns(self, freq : str = None) -> pd.Series:
+    def get_returns(self, freq : str = None, by_constituent = False) -> pd.Series | pd.DataFrame:
         """
         Returns the returns of a portfolio with non-empty weight df
         freq : str, optional
             Pandas offset alias (e.g., 'D', 'W', 'H'). If provided, 
             returns are resampled to this frequency.
+        by_constituent : bool , optional
+            Will return a dataframe instead
         """
-        if self._returns is None or freq is not None: #in case we go H->D->H in cache
+        if self.quantity is None:
+            raise ValueError("Portfolio has not been backtested yet.")
 
-            if self.quantity is None:
-                raise ValueError("Portfolio has not been backtested yet.")
+        prices = self.market.price(field="close")
 
-            prices = self.market.price(field="close")
+        mv = (self.quantity * prices)
+        
+        if not by_constituent:
+            mv = mv.sum(axis=1)
 
-            mv = (self.quantity * prices).sum(axis=1)
-            self._returns = mv.pct_change().dropna()
+        returns = mv.pct_change().fillna(0)
 
         if freq:
-            return self._returns.resample(freq).sum().dropna()
+            returns = returns.resample(freq).apply(lambda x: (1 + x).prod() - 1).dropna()
         
-        return self._returns
+        return returns
     
     def clear_cache(self):
         """

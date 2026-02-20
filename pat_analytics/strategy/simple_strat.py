@@ -21,3 +21,13 @@ class BuyNHold(Strategy):
         self.market = market
 
         return None
+    
+class EqualWeight(Strategy):
+    
+    def decide(self, 
+               portfolio : Portfolio,
+               market : Market) -> pd.Series:
+        tickers = market.price_data.columns.levels[0]
+        n = len(tickers)
+
+        return pd.Series(1.0 / n, index=tickers)

@@ -37,7 +37,7 @@ class Market:
         fx_data             : DataFrame [currency x time] -> price (1 Currency price in USD)
         """
         
-        self.price_data = price_data 
+        self.price_data = price_data.T.groupby(level=0).ffill().T
         self.dividend_data = dividend_data
         self.fundemental_data = fundemental_data
         self.meta_data = meta_data
@@ -143,6 +143,24 @@ class Market:
 
         return cls(data, meta_data)
 
+    @classmethod
+    def from_directory(cls, 
+                 filepath: str | Path,
+                 date_col: str = 'datetime', 
+                 unit: str = 's'):
+        """
+        Reads all the csv files in a directory, and inits
+        a Market class
+        """ 
+        
+        if isinstance(filepath, str):
+            filepath = Path(filepath)
+
+        csv_files = list(filepath.glob("*.csv"))
+        
+        print(csv_files)
+        return cls.from_csv(csv_files, date_col=date_col, unit=unit)
+    
     #================ PRIVATE METHODS =============
     def _validate_and_clean(self):
         """

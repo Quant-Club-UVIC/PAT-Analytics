@@ -1,0 +1,11 @@
+Feb 20th
+
+While I was trying to implement some new built-in strategies I stumbled upon a nasty BUG.  
+  
+Whenever you initialize a market with misaligned data, e.g. AAPL from Feb 2-Feb 10 and BABA from Feb 1-Feb 9, on both of them you will have NaN for price in the begining and end respectively. This NaN propogates BADLY thru out the code. Firslty, when we initialize the weight and quantity, the NaN in the begining will recieve NaN weight/quantity. When being backtested, they will always have 0 return because the NaN. Lastly, at the very end we will have 0 return. So you will see a massive drop in return, since ur mv jumps to 0 instantly.  
+  
+You can't just ignore the NaN's since if you have different exchanges, you may have holidays on different days,
+so if you experience a NaN you can fwd fill it (day t had price x, if day t+1 is NaN set it to x). What about if the price did not exist on day t (we just don't have the data or pre IPO) and then on day t we do. Can't just bwrd fill, will leak future information. Can't set it to 0, you will see massive jumps in returns for them. A possible solution is keep a mask of active stocks thru out the backtest. This is kinda nasty, as it will require a lot of refactoring. Can't come up with any thing simpler tho. 
+I tried making the backtester only make decisions on tickers with valid data in them. The flaw is I will have to deal with NaNs in the portfolio, backtester, and possible more modules. I just want to catch them at the source, when initializing market object.  
+
+Stuck...

@@ -59,21 +59,31 @@ class Backtester:
             p_t : Portfolio = self.portfolio.up_to(t_cur)
             m_t : Market = self.market.up_to(t_cur)
 
-            #make a decision
-            w_target = self.strategy.decide(portfolio = p_t,
-                                        market = m_t)
-
             close_cur = close_at(t_cur)
             close_prev = close_at(t_prev)
 
-            if w_target is None: #no decision was made, just let it drift
+            #ensure me only look at tickers with non-NaN prices at both time steps
+            valid_assets = close_cur.dropna().index.intersection(close_prev.dropna().index)
+
+            print(valid_assets)
+            #make a decision
+            w_target = self.strategy.decide(portfolio = p_t,
+                                        market = m_t)
+            
+            if w_target is None or valid_assets.empty: #no decision was made, just let it drift
                 q_new = q_prev
             
             else: #TODO include fees
-                w_target = w_target.reindex(tickers).fillna(0.0) #reindex
-                w_target /= w_target.sum()
+                w_target = w_target.reindex(valid_assets).fillna(0.0) #reindex
 
-                q_new = find_quantity(w_target, close_prev, close_cur)
+                if w_target.sum() > 0:
+
+                    w_target /= w_target.sum()
+                    q_new_valid = find_quantity(w_target, close_prev[valid_assets], close_cur[valid_assets])
+                    #reindex to fill df
+                    q_new = q_new_valid.reindex(tickers).fillna(0.0)
+                else:
+                    q_new = q_prev
             
             mv_new = (q_new * close_cur).sum()
             w_new = (q_new * close_cur) / mv_new
