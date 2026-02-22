@@ -4,6 +4,7 @@ portfolio.py
 Defines the Portfolio class
 """
 import pandas as pd
+import numpy as np
 from datetime import datetime
 
 from pat_analytics import Market
@@ -117,12 +118,20 @@ class Portfolio:
 
         prices = self.market.price(field="close")
 
-        mv = (self.quantity * prices)
-        
-        if not by_constituent:
-            mv = mv.sum(axis=1)
+        if 'CASH' in prices.columns:
+            prices['CASH'] = 1
 
-        returns = mv.pct_change().fillna(0)
+        v_end = self.quantity.shift(1) * prices
+        v_start = self.quantity.shift(1) * prices.shift(1)
+
+        if not by_constituent:
+            total_v_end = v_end.sum(axis=1)
+            total_v_start = v_start.sum(axis=1)
+            returns = (total_v_end / total_v_start) - 1
+        else:
+            returns = (v_end / v_start) - 1
+
+        returns = returns.fillna(0).replace([np.inf, -np.inf], 0)
 
         if freq:
             returns = returns.resample(freq).apply(lambda x: (1 + x).prod() - 1).dropna()

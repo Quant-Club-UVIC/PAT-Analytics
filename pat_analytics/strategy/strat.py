@@ -16,14 +16,16 @@ class StratConfig:
 
     def __init__(self, 
                  rebalance="None",
-                 commission_type="proportional",
+                 commission_rate=0.00,
                  commission_fee=0.00):
         """
-        Configuration for the strategy
+        Configuration for the strategy. 
+        Comm_rate is a multiple of the trade volume, 
+        whereas comm_fee is a flat fee
         """
         self.rebalance = rebalance
         self.commission_fee = commission_fee
-        self.commission_type = commission_type
+        self.commission_rate = commission_rate
 
         
 class Strategy:

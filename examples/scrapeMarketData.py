@@ -8,7 +8,7 @@ loader = AlphaVantageLoader(config.api_key)
 output_dir = Path("./sample-data")
 output_dir.mkdir(exist_ok=True)
 
-tickers = ["SBUX", "BABA", "CZR", "INTC", "META", "BRK.B", "LUMN"]
+tickers = ["SBUX", "BABA", "CZR", "INTC", "META", "BRK.B", "LUMN", "SPY"]
 
 for ticker in tickers:
     print(f"Fetching daily data for {ticker}...")

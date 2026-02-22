@@ -27,6 +27,7 @@ class EqualWeight(Strategy):
     def decide(self, 
                portfolio : Portfolio,
                market : Market) -> pd.Series:
+        
         tickers = market.price_data.columns.levels[0]
         n = len(tickers)
 

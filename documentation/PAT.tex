@@ -4,7 +4,19 @@
 \usepackage{hyperref}
 \usepackage{setspace}
 \usepackage{mathtools}
+\usepackage{fancyhdr}
+\usepackage{amsmath}
+\usepackage[english]{babel}
+\usepackage{amsthm}
+\usepackage{amssymb}
+\usepackage{setspace}
+\usepackage{stackengine,scalerel}
+\usepackage{mathtools}
+\usepackage[edges]{forest}
+\usepackage[varbb]{newpxmath}
+\usepackage[left=2cm, right=2cm, top=2cm, bottom=2cm]{geometry}
 
+\newcommand\ocirc[1]{\ensurestackMath{\stackon[1pt]{#1}{\mkern2mu\circ}}}
 \onehalfspacing
 
 \title{PAT-Analytics Documentation}
@@ -38,7 +50,7 @@ X = \{ \text{all positions (tradable instruments)} \}
 \end{equation}
 We have a portfolio at time $ t $, denoted $ P_t \subseteq X $, the set of positions held at time $ t $. Thus,
 \begin{equation}
-P : \mathbb{R}_{\geq 0} \to \mathbb{P}(X), \quad t \mapsto P_t
+P : \mathbb{R}_{\geq 1} \to \mathbb{P}(X), \quad t \mapsto P_t
 \label{eq:portfolio_function}
 \end{equation}
 
@@ -171,6 +183,7 @@ V_p^{post} &= V_p^{pre} + C - F_0 n \label{eq:flat_fee_vp}\\
 where $ n = |\{x \in X : q(x,t) \neq q(x,t + \Delta t)\}| $.
 Note that if there is no commission fee then we simply set $F_0 = 0$.
 \paragraph{Proportional Fee}
+
 Let $ F(\Delta q_x) = \gamma |p(x, t + \Delta t) \Delta q_x| $, where $ \gamma $ is the commission rate:
 \begin{align}
 V_p^{post} &= V_p^{pre} + C - \sum_{i \in P_t}\gamma |p(x,t + \Delta t) \Delta q_i| \label{eq:prop_fee_vp}\\
@@ -180,9 +193,39 @@ V_p^{post} &= V_p^{pre} + C - \sum_{i \in P_t}\gamma |p(x,t + \Delta t) \Delta q
 Now we have an implicit equation in $\Delta q_x$. First for the sake of brevity, let 
 $p(x , t + \Delta t) := p$, $w_{0}(x) = w_{0, x}$. Start of with \ref{eq:prop_fee_dq}
 
-\begin{aligned}
-        \Delta q_x &= \dfrac{w_{0,x} [z]}{den}
-    
-\end{aligned}
+\begin{align}
+    \Delta q_x &= \frac{w_0(x) [V_p^{pre} + C - \sum_{i \in P_t}\gamma |p(x,t + \Delta t) \Delta q_i|]}{p(x, t + \Delta t)} - q(x,t) \\
+    \Delta q_x &= \dfrac{w_{0,x} [V^{pre}_p + C]}{p} - q - \dfrac{w_{0,x} \gamma}{p} \sum_{i \in P_t} | p \Delta q| \label{eq:prop_fee}\\
+    B_x  :&= \dfrac{w_{0,x} [V^{pre}_p + C]}{p} - q
+\end{align}
+Notice that $B_x$ is the amount of shares we would have to buy or sell when the commission rate is equal to zero. For now, we assume that $sgn(B_x) = sgn(\Delta q_x)$. We are assuming that if in the zero commission rate case we buy shares, then in the \textit{non} zero commission rate case we also buy shares, and vice-versa. The function $sgn(x) = 1$ if $x > 0$, $0$ if $x = 0$, $-1$ if $x < 0$. 
+\newline
+A general fact for real numbers, is that 
+\[
+|r| = r \cdot sgn(r)
+\]
+So, 
+\begin{align}
+    |p \Delta q_x| &= (p \Delta q_x) \cdot sgn(p \Delta q_x) \\ 
+    &= (p \Delta q_x) \cdot sgn(B_x)
+\end{align}
+We will rewrite \ref{eq:prop_fee} but vectorized, where the hat denotes a vector. Let $\vec{a} := \dfrac{\vec{w_0}}{\vec{p}}$, $\vec{B} := \vec{a}[V_p^{pre} + C] - \vec{q}$, $sgn(\vec{x})$ be the $sgn$ function applied entry-wise, and $\ocirc{}$ be the hadamard product. 
+\begin{align}
+    \vec{\Delta q} &= \vec{B} - \vec{a} \gamma (\vec{p}^T \cdot (sgn(\vec{B}) \ocirc \vec{\Delta q})) \label{eq:prop_fee_vec}\\
+    sgn(\vec{B}) \ocirc \vec{\Delta q} &= sgn(\vec{B}) \ocirc{}  [\vec{B} - \vec{a} \gamma (\vec{p}^T \cdot (sgn(\vec{B}) \ocirc \vec{\Delta q}))] \\
+    \vec{p}^T ( sgn(\vec{B}) \ocirc \vec{\Delta q}) &= \vec{p}^T(sgn(\vec{B}) \ocirc{}  [\vec{B} - \vec{a} \gamma (\vec{p}^T \cdot (sgn(\vec{B}) \ocirc \vec{\Delta q}))]) 
+\end{align}
+Let $t =  \vec{p}^T ( sgn(\vec{B}) \ocirc \vec{\Delta q})$, note that $t$ is a scalar.
+\begin{align}
+    t &= \vec{p}^T(sgn(\vec{B}) \ocirc{}  [\vec{B} - \vec{a} \gamma (t)]) \\
+    t &= \vec{p}^T(sgn(\vec{B}) \ocirc{}  \vec{B} - sgn(\vec{B}) \ocirc{} \vec{a} \gamma (t)) \\
+    t &= \vec{p}^T(sgn(\vec{B}) \ocirc{}  \vec{B}) - \vec{p}^T(sgn(\vec{B}) \ocirc{} \vec{a} \gamma (t)) \\
+    t + \vec{p}^T(sgn(\vec{B}) \ocirc{} \vec{a} ) \gamma t&= \vec{p}^T(sgn(\vec{B}) \ocirc{}  \vec{B}) \\
+    t &= \dfrac{\vec{p}^T(sgn(\vec{B}) \ocirc{}  \vec{B})}{1 + \vec{p}^T(sgn(\vec{B}) \ocirc{} \vec{a} ) \gamma}
+\end{align}
+Put this back into \ref{eq:prop_fee_vec}. In conclusion, to get the amount of shares one needs for a predetermined weight, given proportional commission fees on each trade:
+\begin{equation}
+    \boxed{ \vec{\Delta q} = \vec{B} - \vec{a} \gamma  \bigg (\dfrac{\vec{p}^T(sgn(\vec{B}) \ocirc{}  \vec{B})}{1 + \vec{p}^T(sgn(\vec{B}) \ocirc{} \vec{a} ) \gamma} \bigg )}
+\end{equation}
 
 \end{document}
